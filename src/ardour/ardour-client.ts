@@ -4,10 +4,12 @@ import { EventEmitter } from 'events'
 export interface ArdourTrack {
   id: string
   name: string
-  type: 'audio' | 'midi'
+  type: 'audio' | 'midi' | 'bus' | 'master'
   muted: boolean
   soloed: boolean
   recordEnabled: boolean
+  gain: number
+  pan: number
 }
 
 export interface ArdourSession {
@@ -16,7 +18,14 @@ export interface ArdourSession {
   frameRate: number
   isPlaying: boolean
   isRecording: boolean
+  transportFrame: number
   tracks: ArdourTrack[]
+}
+
+export interface ArdourState {
+  playbackStatus: 'stopped' | 'playing' | 'unknown'
+  transportFrame: number | null
+  stripList: ArdourTrack[]
 }
 
 export class ArdourClient extends EventEmitter {
@@ -26,6 +35,11 @@ export class ArdourClient extends EventEmitter {
   private sendPort: number
   private isConnected: boolean = false
   private session: ArdourSession | null = null
+  private state: ArdourState = {
+    playbackStatus: 'unknown',
+    transportFrame: null,
+    stripList: []
+  }
 
   constructor() {
     super()
@@ -60,73 +74,129 @@ export class ArdourClient extends EventEmitter {
     console.log('OSC Nachricht empfangen:', address, args)
 
     switch (address) {
-      case '/ardour/session/loaded':
-        this.handleSessionLoaded(args)
-        break
-      case '/ardour/transport/state':
+      case '/transport_state':
         this.handleTransportState(args)
         break
-      case '/ardour/track/added':
-        this.handleTrackAdded(args)
+      case '/transport_frame':
+        this.handleTransportFrame(args)
+        break
+      case '/strip/play':
+        this.handleStripPlay(args)
         break
       default:
-        // Unbekannte Nachrichten ignorieren
-        break
-    }
-  }
-
-  private handleSessionLoaded(args: any[]): void {
-    if (args.length >= 3) {
-      this.session = {
-        name: args[0] || 'Unnamed Session',
-        sampleRate: args[1] || 44100,
-        frameRate: args[2] || 25,
-        isPlaying: false,
-        isRecording: false,
-        tracks: []
-      }
-      this.emit('sessionLoaded', this.session)
+        if (address.startsWith('/strip/name/')) {
+          this.handleStripName(address, args)
+        } else if (address.startsWith('/strip/type/')) {
+          this.handleStripType(address, args)
+        } else {
+          console.debug('Unbekannte OSC-Nachricht:', address, args)
+        }
     }
   }
 
   private handleTransportState(args: any[]): void {
-    if (this.session && args.length >= 2) {
-      this.session.isPlaying = args[0] === 1
-      this.session.isRecording = args[1] === 1
+    if (args.length >= 2) {
+      const state = args[0]
+      const speed = args[1]
+      
+      switch (state) {
+        case 0:
+          this.state.playbackStatus = 'stopped'
+          break
+        case 1:
+        case 2:
+          this.state.playbackStatus = 'playing'
+          break
+        default:
+          this.state.playbackStatus = 'unknown'
+      }
+      
       this.emit('transportStateChanged', {
-        isPlaying: this.session.isPlaying,
-        isRecording: this.session.isRecording
+        status: this.state.playbackStatus,
+        speed: speed
       })
     }
   }
 
-  private handleTrackAdded(args: any[]): void {
-    if (args.length >= 3) {
-      const track: ArdourTrack = {
-        id: args[0]?.toString() || '',
-        name: args[1] || 'Unnamed Track',
-        type: args[2] === 'midi' ? 'midi' : 'audio',
-        muted: false,
-        soloed: false,
-        recordEnabled: false
-      }
-      
-      if (this.session) {
-        this.session.tracks.push(track)
-      }
-      this.emit('trackAdded', track)
+  private handleTransportFrame(args: any[]): void {
+    if (args.length >= 1) {
+      this.state.transportFrame = args[0]
+      this.emit('transportFrameChanged', this.state.transportFrame)
     }
   }
 
-  // Ardour-Steuerungsfunktionen
+  private handleStripPlay(args: any[]): void {
+    if (args.length >= 1) {
+      const isPlaying = args[0] === 1
+      this.state.playbackStatus = isPlaying ? 'playing' : 'stopped'
+      this.emit('playbackStatusChanged', this.state.playbackStatus)
+    }
+  }
+
+  private handleStripName(address: string, args: any[]): void {
+    const parts = address.split('/')
+    if (parts.length === 4 && args.length >= 1) {
+      const stripId = parseInt(parts[3])
+      const name = args[0]
+      
+      if (stripId > 0) {
+        let track = this.state.stripList.find(t => t.id === stripId.toString())
+        if (!track) {
+          track = {
+            id: stripId.toString(),
+            name: name,
+            type: 'audio',
+            muted: false,
+            soloed: false,
+            recordEnabled: false,
+            gain: 1.0,
+            pan: 0.5
+          }
+          this.state.stripList.push(track)
+        } else {
+          track.name = name
+        }
+        
+        this.emit('trackUpdated', track)
+      }
+    }
+  }
+
+  private handleStripType(address: string, args: any[]): void {
+    const parts = address.split('/')
+    if (parts.length === 4 && args.length >= 1) {
+      const stripId = parseInt(parts[3])
+      const type = args[0]
+      
+      if (stripId > 0) {
+        const track = this.state.stripList.find(t => t.id === stripId.toString())
+        if (track) {
+          track.type = type
+          this.emit('trackUpdated', track)
+        }
+      }
+    }
+  }
+
+  // Ardour-Steuerungsfunktionen basierend auf ardour-mcp
   async connect(): Promise<void> {
     try {
       await this.client.connect()
       console.log(`Verbunden mit Ardour auf ${this.host}:${this.port}`)
+      
+      // Sende initiale OSC-Setup-Nachrichten
+      await this.sendOSCSetup()
     } catch (error) {
       console.error('Fehler beim Verbinden mit Ardour:', error)
       throw error
     }
+  }
+
+  private async sendOSCSetup(): Promise<void> {
+    // Sende Setup-Nachrichten für Feedback
+    this.sendOSC('/strip/list')
+    this.sendOSC('/transport_state')
+    this.sendOSC('/transport_frame')
   }
 
   async disconnect(): Promise<void> {
@@ -135,74 +205,117 @@ export class ArdourClient extends EventEmitter {
     console.log('Verbindung zu Ardour getrennt')
   }
 
-  // Transport-Steuerung
+  // Transport-Steuerung (basierend auf ardour-mcp)
   async play(): Promise<void> {
-    this.sendOSC('/ardour/transport/play')
+    this.sendOSC('/transport_play')
   }
 
   async stop(): Promise<void> {
-    this.sendOSC('/ardour/transport/stop')
+    this.sendOSC('/transport_stop')
   }
 
   async record(): Promise<void> {
-    this.sendOSC('/ardour/transport/record')
+    this.sendOSC('/transport_record')
   }
 
   async stopRecord(): Promise<void> {
-    this.sendOSC('/ardour/transport/stop_record')
+    this.sendOSC('/transport_record_stop')
   }
 
-  // Track-Management
+  async setTransportSpeed(speed: number): Promise<void> {
+    if (speed < 0.1 || speed > 4.0) {
+      throw new Error('Transport speed must be between 0.1 and 4.0')
+    }
+    this.sendOSC('/transport_speed', speed)
+  }
+
+  // Track-Management (basierend auf ardour-mcp)
   async createAudioTrack(name?: string): Promise<string> {
     const trackName = name || `Audio Track ${Date.now()}`
-    this.sendOSC('/ardour/add_audio_track', trackName)
+    this.sendOSC('/add_audio_track', trackName)
     return `audio_track_${Date.now()}`
   }
 
   async createMIDITrack(name?: string): Promise<string> {
     const trackName = name || `MIDI Track ${Date.now()}`
-    this.sendOSC('/ardour/add_midi_track', trackName)
+    this.sendOSC('/add_midi_track', trackName)
     return `midi_track_${Date.now()}`
   }
 
-  async enableTrackRecord(trackId: string): Promise<void> {
-    this.sendOSC('/ardour/track/record_enable', trackId, 1)
-  }
-
-  async disableTrackRecord(trackId: string): Promise<void> {
-    this.sendOSC('/ardour/track/record_enable', trackId, 0)
-  }
-
   async setTrackMute(trackId: string, muted: boolean): Promise<void> {
-    this.sendOSC('/ardour/track/mute', trackId, muted ? 1 : 0)
+    this.sendOSC('/strip/mute', parseInt(trackId), muted ? 1 : 0)
   }
 
   async setTrackSolo(trackId: string, soloed: boolean): Promise<void> {
-    this.sendOSC('/ardour/track/solo', trackId, soloed ? 1 : 0)
+    this.sendOSC('/strip/solo', parseInt(trackId), soloed ? 1 : 0)
   }
 
-  // Plugin-Management
+  async setTrackRecordEnable(trackId: string, enabled: boolean): Promise<void> {
+    this.sendOSC('/strip/recenable', parseInt(trackId), enabled ? 1 : 0)
+  }
+
+  async setTrackGain(trackId: string, gain: number): Promise<void> {
+    if (gain < 0.0 || gain > 2.0) {
+      throw new Error('Gain must be between 0.0 and 2.0')
+    }
+    // Konvertiere zu Fader-Position (0.0-1.0)
+    const faderPosition = (gain / 2.0).clamp(0.0, 1.0)
+    this.sendOSC('/strip/fader', parseInt(trackId), faderPosition)
+  }
+
+  async setTrackGainDB(trackId: string, gainDB: number): Promise<void> {
+    if (gainDB < -400.0 || gainDB > 6.0) {
+      throw new Error('Gain DB must be between -400.0 and 6.0')
+    }
+    this.sendOSC('/strip/gain', parseInt(trackId), gainDB)
+  }
+
+  async setTrackPan(trackId: string, pan: number): Promise<void> {
+    if (pan < 0.0 || pan > 1.0) {
+      throw new Error('Pan must be between 0.0 and 1.0')
+    }
+    this.sendOSC('/strip/pan_stereo_position', parseInt(trackId), pan)
+  }
+
+  async selectTrack(trackId: string): Promise<void> {
+    this.sendOSC('/strip/select', parseInt(trackId), 1)
+  }
+
+  // Plugin-Management (basierend auf ardour-mcp)
   async addPluginToTrack(trackId: string, pluginName: string): Promise<string> {
-    this.sendOSC('/ardour/track/plugin/add', trackId, pluginName)
+    this.sendOSC('/strip/plugin/insert', parseInt(trackId), pluginName)
     return `plugin_${Date.now()}`
   }
 
-  async setPluginParameter(pluginId: string, parameter: string, value: number): Promise<void> {
-    this.sendOSC('/ardour/plugin/parameter/set', pluginId, parameter, value)
+  async setPluginActive(trackId: string, pluginSlot: number, active: boolean): Promise<void> {
+    const address = active ? '/strip/plugin/activate' : '/strip/plugin/deactivate'
+    this.sendOSC(address, parseInt(trackId), pluginSlot)
+  }
+
+  async setPluginParameter(trackId: string, pluginSlot: number, paramId: number, value: number): Promise<void> {
+    if (value < 0.0 || value > 1.0) {
+      throw new Error('Parameter value must be between 0.0 and 1.0')
+    }
+    this.sendOSC('/strip/plugin/parameter', parseInt(trackId), pluginSlot, paramId, value)
   }
 
   // Session-Management
   async loadSession(sessionPath: string): Promise<void> {
-    this.sendOSC('/ardour/session/load', sessionPath)
+    this.sendOSC('/session/load', sessionPath)
   }
 
   async saveSession(): Promise<void> {
-    this.sendOSC('/ardour/session/save')
+    this.sendOSC('/session/save')
   }
 
   async getSessionInfo(): Promise<ArdourSession | null> {
-    this.sendOSC('/ardour/session/info')
+    this.sendOSC('/session/info')
     return this.session
+  }
+
+  // Ardour Actions (basierend auf ardour-mcp)
+  async executeAction(actionName: string): Promise<void> {
+    this.sendOSC('/access_action', actionName)
   }
 
   // Hilfsfunktionen
@@ -226,5 +339,13 @@ export class ArdourClient extends EventEmitter {
 
   getCurrentSession(): ArdourSession | null {
     return this.session
+  }
+
+  getCurrentState(): ArdourState {
+    return { ...this.state }
+  }
+
+  getTracks(): ArdourTrack[] {
+    return [...this.state.stripList]
   }
 } 

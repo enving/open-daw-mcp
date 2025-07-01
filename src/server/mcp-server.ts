@@ -241,14 +241,9 @@ export class DAWMCPServer {
     })
   }
 
-  private async createSynthLoop(request: CreateSynthLoopRequest): Promise<CreateSynthLoopResponse> {
+  public async createSynthLoop(request: CreateSynthLoopRequest): Promise<CreateSynthLoopResponse> {
     try {
-      console.log('Erstelle Synthesizer-Loop in Ardour:', request.description)
-
-      // Verbinde mit Ardour falls noch nicht verbunden
-      if (!this.ardourClient.isConnectedToArdour()) {
-        await this.ardourClient.connect()
-      }
+      console.log('Erstelle Synthesizer-Loop:', request.description)
 
       // Generiere Pattern mit IONOS API
       const patternResponse = await this.ionosClient.generateSynthPattern(
@@ -261,12 +256,27 @@ export class DAWMCPServer {
       // Parse Pattern
       const patternData = await this.ionosClient.parseSynthPattern(patternResponse)
       
-      // Erstelle MIDI-Track in Ardour
-      const trackId = await this.ardourClient.createMIDITrack(`Synth Loop - ${patternData.description || request.description}`)
+      let trackId: string | undefined
+      let pluginId: string | undefined
+      
+      // Versuche Ardour-Verbindung (optional)
+      try {
+        if (!this.ardourClient.isConnectedToArdour()) {
+          await this.ardourClient.connect()
+        }
+        
+        // Erstelle MIDI-Track in Ardour
+        trackId = await this.ardourClient.createMIDITrack(`Synth Loop - ${patternData.description || request.description}`)
 
-      // Füge Synthesizer-Plugin hinzu
-      const pluginName = patternData.suggested_plugin || 'ZynAddSubFX'
-      const pluginId = await this.ardourClient.addPluginToTrack(trackId, pluginName)
+        // Füge Synthesizer-Plugin hinzu
+        const pluginName = patternData.suggested_plugin || 'ZynAddSubFX'
+        pluginId = await this.ardourClient.addPluginToTrack(trackId, pluginName)
+        
+        console.log('✅ Ardour-Integration erfolgreich')
+      } catch (ardourError) {
+        console.log('⚠️  Ardour nicht verfügbar - überspringe DAW-Integration')
+        console.log('Ardour Fehler:', ardourError.message)
+      }
 
       // Erstelle AudioClip Objekt
       const audioClip: AudioClip = {
