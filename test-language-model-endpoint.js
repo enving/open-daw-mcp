@@ -12,10 +12,13 @@ const server = spawn('node', ['src/server/manual-mcp-server.js'], {
 
 let serverReady = false
 let requestId = 1
+let responses = []
 
 // Server-Output verarbeiten
 server.stderr.on('data', (data) => {
   const output = data.toString()
+  console.log('🔍 Server:', output.trim())
+  
   if (output.includes('⏳ Warte auf JSON-RPC Requests')) {
     serverReady = true
     console.log('✅ MCP Server bereit für Tests\n')
@@ -27,31 +30,48 @@ server.stderr.on('data', (data) => {
 function sendRequest(method, params = {}) {
   const request = {
     jsonrpc: '2.0',
-    id: requestId++,
+    id: requestId,
     method,
     params
   }
   
-  console.log(`📤 Sende Request: ${method}`)
+  console.log(`📤 Sende Request ${requestId}: ${method}`)
+  console.log(`📋 Params:`, JSON.stringify(params, null, 2))
   server.stdin.write(JSON.stringify(request) + '\n')
+  requestId++
 }
 
 // Response verarbeiten
 server.stdout.on('data', (data) => {
+  const rawData = data.toString().trim()
+  console.log(`📥 Raw Response: ${rawData}`)
+  
   try {
-    const response = JSON.parse(data.toString().trim())
+    const response = JSON.parse(rawData)
+    responses.push(response)
     console.log(`📥 Response erhalten (ID: ${response.id})`)
     
     if (response.result) {
       console.log('✅ Erfolgreiche Antwort:')
       console.log(JSON.stringify(response.result, null, 2))
+      
+      // Spezielle Behandlung für Song-Erstellung
+      if (response.result.song) {
+        console.log('🎵 Song erstellt:')
+        console.log(`  - Name: ${response.result.song.name}`)
+        console.log(`  - Style: ${response.result.song.style}`)
+        console.log(`  - BPM: ${response.result.song.bpm}`)
+        console.log(`  - Key: ${response.result.song.key}`)
+        console.log(`  - MIDI: ${response.result.song.midiPath}`)
+        console.log(`  - Audio: ${response.result.song.audioPath}`)
+      }
     } else if (response.error) {
       console.log('❌ Fehler:')
       console.log(JSON.stringify(response.error, null, 2))
     }
     console.log('')
   } catch (error) {
-    console.log('⚠️ Response konnte nicht geparst werden:', data.toString())
+    console.log('⚠️ Response konnte nicht geparst werden:', rawData)
   }
 })
 
@@ -79,7 +99,7 @@ function runLanguageModelTests() {
         bpm: 130
       }
     })
-  }, 2000)
+  }, 3000)
   
   setTimeout(() => {
     // Test 3: Künstler-Referenz
@@ -90,7 +110,7 @@ function runLanguageModelTests() {
         description: 'Ein psychedelischer Song im Stil von Tame Impala mit viel Reverb und dreamy Melodien'
       }
     })
-  }, 4000)
+  }, 6000)
   
   setTimeout(() => {
     // Test 4: Komplexe Beschreibung
@@ -104,7 +124,7 @@ function runLanguageModelTests() {
         key: 'D'
       }
     })
-  }, 6000)
+  }, 9000)
   
   setTimeout(() => {
     // Test 5: Beschreibung analysieren
@@ -115,7 +135,7 @@ function runLanguageModelTests() {
         description: 'Ein euphorischer Trance-Track mit uplifting Melodien und kraftvollen Drops'
       }
     })
-  }, 8000)
+  }, 12000)
   
   setTimeout(() => {
     // Test 6: House-Style mit Referenz
@@ -126,7 +146,7 @@ function runLanguageModelTests() {
         description: 'Ein grooviger House-Track im Stil von Daft Punk mit funky Bass-Linien und soulful Piano-Akkorden'
       }
     })
-  }, 10000)
+  }, 15000)
   
   setTimeout(() => {
     // Test 7: Drum & Bass
@@ -139,7 +159,7 @@ function runLanguageModelTests() {
         bpm: 170
       }
     })
-  }, 12000)
+  }, 18000)
   
   setTimeout(() => {
     // Test 8: Psychedelic Rock
@@ -153,7 +173,7 @@ function runLanguageModelTests() {
         key: 'F#'
       }
     })
-  }, 14000)
+  }, 21000)
   
   setTimeout(() => {
     // Test 9: Stimmung-basierte Beschreibung
@@ -164,7 +184,7 @@ function runLanguageModelTests() {
         description: 'Ein melancholischer, trauriger Song mit langsamen, traurigen Melodien'
       }
     })
-  }, 16000)
+  }, 24000)
   
   setTimeout(() => {
     // Test 10: Finale Analyse
@@ -175,15 +195,30 @@ function runLanguageModelTests() {
         description: 'Ein energetischer, kraftvoller Song mit schnellen Beats und euphorischen Klängen'
       }
     })
-  }, 18000)
+  }, 27000)
   
-  // Server beenden
+  // Server beenden und Ergebnisse anzeigen
   setTimeout(() => {
     console.log('🏁 Beende Tests...')
+    console.log('\n📊 Test-Ergebnisse:')
+    console.log(`✅ Erfolgreiche Responses: ${responses.filter(r => r.result).length}`)
+    console.log(`❌ Fehler: ${responses.filter(r => r.error).length}`)
+    console.log(`📝 Gesamt Responses: ${responses.length}`)
+    
+    // Erstellte Songs anzeigen
+    const songs = responses.filter(r => r.result && r.result.song)
+    if (songs.length > 0) {
+      console.log('\n🎵 Erstellte Songs:')
+      songs.forEach((response, index) => {
+        const song = response.result.song
+        console.log(`  ${index + 1}. ${song.name} (${song.style}, ${song.bpm} BPM, ${song.key})`)
+      })
+    }
+    
     server.stdin.end()
     server.kill()
     process.exit(0)
-  }, 20000)
+  }, 30000)
 }
 
 // Fehlerbehandlung
