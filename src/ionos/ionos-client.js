@@ -11,6 +11,46 @@ class IONOSClient {
     };
   }
 
+  async generateResponse(prompt) {
+    try {
+      const response = await fetch(`${this.config.apiUrl}/chat/completions`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${this.config.apiToken}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          model: this.config.model,
+          messages: [
+            {
+              role: 'user',
+              content: prompt
+            }
+          ],
+          temperature: 0.8,
+          max_tokens: 1000
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`IONOS API Error: ${response.status} ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      const content = data.choices?.[0]?.message?.content;
+      
+      if (!content) {
+        throw new Error('Keine Antwort von IONOS API erhalten');
+      }
+
+      return content;
+
+    } catch (error) {
+      console.error('IONOS API Fehler:', error);
+      throw error;
+    }
+  }
+
   async generateSongFromDescription(request) {
     try {
       const prompt = this.buildSongPrompt(request);

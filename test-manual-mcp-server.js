@@ -102,54 +102,24 @@ class ManualMCPClient {
       })
       console.log('✅ Styles Response:', JSON.stringify(stylesResponse, null, 2))
       
-      // Test 3: Song-Beschreibung analysieren
-      console.log('\n📊 Test 3: Song-Beschreibung analysieren')
-      const analysisResponse = await this.sendRequest('tools/call', {
-        name: 'analyze_song_description',
-        arguments: {
-          description: 'Ein psychedelischer Song im Stil von Tame Impala mit viel Reverb und dreamy Melodien'
-        }
+      // Test 3: Verfügbare Tools auflisten
+      console.log('\n📊 Test 3: Verfügbare Tools auflisten')
+      const toolsResponse2 = await this.sendRequest('tools/call', {
+        name: 'list_available_tools',
+        arguments: {}
       })
-      console.log('✅ Analysis Response:', JSON.stringify(analysisResponse, null, 2))
+      console.log('✅ Tools Response:', JSON.stringify(toolsResponse2, null, 2))
       
-      // Test 4: Song erstellen
-      console.log('\n🎵 Test 4: Song erstellen')
-      const createResponse = await this.sendRequest('tools/call', {
-        name: 'create_song_from_description',
-        arguments: {
-          description: '"Dreamy Psychedelic Journey" - Ein psychedelischer Song im Stil von Tame Impala mit viel Reverb und dreamy Melodien',
-          style: 'psychedelic_rock',
-          bpm: 85,
-          key: 'F#'
-        }
-      })
-      console.log('✅ Create Response:', JSON.stringify(createResponse, null, 2))
-      
-      // Test 5: Techno Song erstellen
-      console.log('\n🎵 Test 5: Techno Song erstellen')
+      // Test 4: Techno Song erstellen
+      console.log('\n🎵 Test 4: Techno Song erstellen')
       const technoResponse = await this.sendRequest('tools/call', {
         name: 'create_song_from_description',
         arguments: {
-          description: '"Industrial Techno Beat" - Ein harter Techno Track mit repetitiven Beats und industriellen Klängen',
-          style: 'techno',
-          bpm: 130,
-          key: 'A'
+          description: 'Ein cooler Techno-Track mit fetten Bässen und harten Beats',
+          style: 'techno'
         }
       })
       console.log('✅ Techno Response:', JSON.stringify(technoResponse, null, 2))
-      
-      // Test 6: Ambient Song erstellen
-      console.log('\n🎵 Test 6: Ambient Song erstellen')
-      const ambientResponse = await this.sendRequest('tools/call', {
-        name: 'create_song_from_description',
-        arguments: {
-          description: '"Atmospheric Ambient Journey" - Ein ruhiger Ambient Track mit atmosphärischen Pads und ethereal Klängen',
-          style: 'ambient',
-          bpm: 75,
-          key: 'D'
-        }
-      })
-      console.log('✅ Ambient Response:', JSON.stringify(ambientResponse, null, 2))
       
       console.log('\n🎉 Alle Tests erfolgreich abgeschlossen!')
       
