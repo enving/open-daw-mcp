@@ -3,7 +3,7 @@
 import { spawn } from 'child_process'
 import { writeFileSync } from 'fs'
 
-console.log('🧪 Teste IONOS LLM Integration im MCP Server...\n')
+console.log('🧪 Teste IONOS LLM Integration im MCP Server (DEBUG MODE)...\n')
 
 // MCP Server starten
 const server = spawn('node', ['src/server/manual-mcp-server.js'], {
@@ -13,16 +13,21 @@ const server = spawn('node', ['src/server/manual-mcp-server.js'], {
 let serverReady = false
 let requestId = 1
 
-// Server-Output verarbeiten
+// Debug: Alle Server-Ausgaben loggen
 server.stderr.on('data', (data) => {
   const output = data.toString()
-  console.log('🔍 Server:', output.trim())
+  console.log('🔍 [STDERR] Server:', output.trim())
   
   if (output.includes('⏳ Warte auf JSON-RPC Requests')) {
     serverReady = true
     console.log('✅ MCP Server bereit für IONOS Tests\n')
-    runIONOSTests()
+    setTimeout(() => runIONOSTests(), 1000) // Kurze Verzögerung
   }
+})
+
+server.stdout.on('data', (data) => {
+  const output = data.toString()
+  console.log('📤 [STDOUT] Server:', output.trim())
 })
 
 // JSON-RPC Request senden
@@ -34,10 +39,16 @@ function sendRequest(method, params = {}) {
     params
   }
   
+  const requestStr = JSON.stringify(request) + '\n'
   console.log(`📤 Sende Request: ${method}`)
-  console.log(`📋 Params:`, JSON.stringify(params, null, 2))
+  console.log(`📋 Request JSON:`, requestStr.trim())
   
-  server.stdin.write(JSON.stringify(request) + '\n')
+  try {
+    server.stdin.write(requestStr)
+    console.log('✅ Request an Server gesendet')
+  } catch (error) {
+    console.error('❌ Fehler beim Senden des Requests:', error)
+  }
 }
 
 // Tests ausführen
@@ -47,7 +58,7 @@ async function runIONOSTests() {
   // Test 1: Tools auflisten
   console.log('=== Test 1: Tools auflisten ===')
   sendRequest('tools/list')
-  await sleep(2000)
+  await sleep(3000)
   
   // Test 2: Musikstile auflisten
   console.log('\n=== Test 2: Musikstile auflisten ===')
@@ -55,7 +66,7 @@ async function runIONOSTests() {
     name: 'list_music_styles',
     arguments: {}
   })
-  await sleep(2000)
+  await sleep(3000)
   
   // Test 3: Song mit IONOS LLM erstellen
   console.log('\n=== Test 3: Song mit IONOS LLM erstellen ===')
@@ -67,51 +78,23 @@ async function runIONOSTests() {
       artist: 'Tame Impala'
     }
   })
-  await sleep(10000)
-  
-  // Test 4: Weitere Song-Variante
-  console.log('\n=== Test 4: Ambient Song erstellen ===')
-  sendRequest('tools/call', {
-    name: 'create_song_from_description',
-    arguments: {
-      description: 'Ein ruhiger Ambient-Track mit sanften Piano-Klängen und subtilen Field Recordings',
-      style: 'Ambient'
-    }
-  })
-  await sleep(10000)
+  await sleep(15000) // Längere Wartezeit für IONOS API
   
   console.log('\n✅ Alle IONOS Tests abgeschlossen!')
   console.log('📁 Überprüfe das output/ Verzeichnis für erstellte Dateien.')
   
   // Server beenden
+  console.log('🏁 Beende Server...')
   server.kill()
   process.exit(0)
 }
 
 function sleep(ms) {
-  return new Promise(resolve => setTimeout(resolve, ms))
+  return new Promise(resolve => {
+    console.log(`⏳ Warte ${ms}ms...`)
+    setTimeout(resolve, ms)
+  })
 }
-
-// Server-Responses verarbeiten
-server.stdout.on('data', (data) => {
-  const response = data.toString().trim()
-  if (response) {
-    try {
-      const parsed = JSON.parse(response)
-      console.log('📥 Response erhalten:')
-      console.log(JSON.stringify(parsed, null, 2))
-      
-      if (parsed.result && parsed.result.success) {
-        console.log('✅ Request erfolgreich!')
-        if (parsed.result.files) {
-          console.log('📁 Erstellte Dateien:', parsed.result.files)
-        }
-      }
-    } catch (error) {
-      console.log('📥 Raw Response:', response)
-    }
-  }
-})
 
 // Fehlerbehandlung
 server.on('error', (error) => {
@@ -121,4 +104,17 @@ server.on('error', (error) => {
 
 server.on('exit', (code) => {
   console.log(`🏁 Server beendet mit Code: ${code}`)
+})
+
+// Process-Signal-Handler
+process.on('SIGINT', () => {
+  console.log('\n🛑 Test abgebrochen durch Benutzer')
+  server.kill()
+  process.exit(0)
+})
+
+process.on('SIGTERM', () => {
+  console.log('\n🛑 Test beendet')
+  server.kill()
+  process.exit(0)
 }) 

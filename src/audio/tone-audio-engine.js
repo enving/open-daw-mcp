@@ -351,8 +351,18 @@ class ToneAudioEngine {
   createFallbackAudio(outputPath, style = 'techno', pattern = { bpm: 120, key: 'C', scale: 'major' }) {
     console.error('🎵 Erstelle erweiterte Fallback-Audio...')
     
+    // Sicherheitscheck und Normalisierung der Parameter
+    const safeStyle = style || 'techno'
+    const safePattern = {
+      bpm: pattern?.bpm || 120,
+      key: pattern?.key || 'C',
+      scale: pattern?.scale || 'major'
+    }
+    
+    console.error('📋 Audio-Parameter:', { style: safeStyle, pattern: safePattern })
+    
     // Stil-spezifische Audio-Parameter
-    const styleConfig = this.getStyleAudioConfig(style)
+    const styleConfig = this.getStyleAudioConfig(safeStyle)
     
     // Einfache WAV-Datei mit verschiedenen Wellenformen
     const sampleRate = 44100
@@ -363,24 +373,38 @@ class ToneAudioEngine {
     const audioBuffer = Buffer.alloc(samples * channels * 2) // 16-bit
     
     // Akkord-Progression generieren
-    const chords = this.generateChords(pattern.key, pattern.scale, [1, 4, 5, 1])
-    const melody = this.generateMelody(pattern.key, pattern.scale, 16)
+    const chords = this.generateChords(safePattern.key, safePattern.scale, [1, 4, 5, 1])
+    const melody = this.generateMelody(safePattern.key, safePattern.scale, 16)
+    
+    // Sicherheitscheck für Akkorde und Melodie
+    if (!chords || chords.length === 0) {
+      console.error('⚠️ Keine Akkorde generiert - verwende Fallback')
+      chords = ['C', 'F', 'G', 'C']
+    }
+    
+    if (!melody || melody.length === 0) {
+      console.error('⚠️ Keine Melodie generiert - verwende Fallback')
+      melody = ['C4', 'D4', 'E4', 'F4', 'G4', 'A4', 'B4', 'C5']
+    }
     
     for (let i = 0; i < samples; i++) {
       const time = i / sampleRate
-      const beat = time * (pattern.bpm / 60)
+      const beat = time * (safePattern.bpm / 60)
       
       // Bass-Line (tiefe Frequenzen)
-      const bassFreq = this.getChordRoot(chords[Math.floor(beat / 2) % chords.length])
+      const chordIndex = Math.floor(beat / 2) % chords.length
+      const bassFreq = this.getChordRoot(chords[chordIndex])
       const bassSample = this.generateWaveform(bassFreq, time, styleConfig.bass.waveform) * 0.2
       
       // Melodie (mittlere Frequenzen)
-      const melodyNote = melody[Math.floor(beat * 2) % melody.length]
+      const melodyIndex = Math.floor(beat * 2) % melody.length
+      const melodyNote = melody[melodyIndex]
       const melodyFreq = this.noteToFrequency(melodyNote)
       const melodySample = this.generateWaveform(melodyFreq, time, styleConfig.lead.waveform) * 0.15
       
       // Pad (hohe Frequenzen, langsam)
-      const padFreq = this.getChordRoot(chords[Math.floor(beat / 4) % chords.length]) * 2
+      const padChordIndex = Math.floor(beat / 4) % chords.length
+      const padFreq = this.getChordRoot(chords[padChordIndex]) * 2
       const padSample = this.generateWaveform(padFreq, time, styleConfig.pad.waveform) * 0.1
       
       // Effekte anwenden
@@ -473,9 +497,22 @@ class ToneAudioEngine {
 
   // Akkord-Root-Note extrahieren
   getChordRoot(chord) {
+    // Sicherheitscheck für undefined/null Werte
+    if (!chord || typeof chord !== 'string') {
+      console.error('⚠️ Ungültiger Akkord:', chord, '- verwende Fallback C')
+      return 261.63 // C4 Frequenz als Fallback
+    }
+    
     const notes = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B']
     const root = chord.replace(/[^A-Z#]/g, '')
     const noteIndex = notes.indexOf(root)
+    
+    // Fallback wenn Note nicht gefunden
+    if (noteIndex === -1) {
+      console.error('⚠️ Unbekannte Note:', root, '- verwende Fallback C')
+      return 261.63 // C4 Frequenz als Fallback
+    }
+    
     return 220 * Math.pow(2, noteIndex / 12) // A4 = 220Hz als Referenz
   }
 

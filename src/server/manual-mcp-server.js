@@ -166,6 +166,10 @@ class ManualMCPServer {
       const songData = ionosResponse.songData
       console.log('✅ IONOS Song-Daten erhalten:', songData)
 
+      // Song-Daten normalisieren und mappen
+      const normalizedSongData = this.normalizeSongData(songData)
+      console.log('📋 Normalisierte Song-Daten:', normalizedSongData)
+      
       // MIDI-Datei erstellen
       const midiData = this.generateMIDI(songData)
       const midiFilename = `song_${Date.now()}.mid`
@@ -176,7 +180,7 @@ class ManualMCPServer {
       const audioFilename = `song_${Date.now()}.wav`
       const audioPath = join(this.outputDir, audioFilename)
       
-      await this.audioEngine.generateSongAudio(songData, audioPath)
+      await this.audioEngine.createSong(normalizedSongData, normalizedSongData.style, audioPath)
 
       return {
         success: true,
@@ -246,6 +250,46 @@ class ManualMCPServer {
     return Buffer.concat([midiHeader, trackData])
   }
 
+  // Song-Daten normalisieren und auf unterstützte Werte mappen
+  normalizeSongData(songData) {
+    // Unterstützte Stile mappen
+    const styleMapping = {
+      'techno': 'techno',
+      'house': 'house', 
+      'ambient': 'ambient',
+      'trance': 'trance',
+      'drum & bass': 'techno', // Fallback
+      'psychedelic rock': 'psychedelic_rock',
+      'electronic': 'techno',
+      'synthwave': 'techno',
+      'downtempo': 'ambient',
+      'experimental': 'techno',
+      'psychedelischer techno': 'techno'
+    }
+    
+    // Unterstützte Tonarten
+    const supportedKeys = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B']
+    
+    const normalized = {
+      title: songData.title || 'Generierter Song',
+      style: styleMapping[songData.style?.toLowerCase()] || 'techno',
+      tempo: songData.tempo || 120,
+      key: supportedKeys.includes(songData.key) ? songData.key : 'C',
+      scale: 'major', // Standard-Skala
+      structure: songData.structure || ['Intro', 'Verse', 'Chorus', 'Verse', 'Chorus', 'Bridge', 'Outro'],
+      instruments: songData.instruments || ['Bass', 'Drums', 'Synth'],
+      description: songData.description || 'Keine Beschreibung verfügbar',
+      bpm: songData.tempo || 120 // Kompatibilität mit Audio-Engine
+    }
+    
+    console.log('🔄 Normalisierung:', {
+      original: { style: songData.style, key: songData.key, tempo: songData.tempo },
+      normalized: { style: normalized.style, key: normalized.key, tempo: normalized.tempo }
+    })
+    
+    return normalized
+  }
+
   createSuccessResponse(id, result) {
     return {
       jsonrpc: '2.0',
@@ -266,10 +310,10 @@ class ManualMCPServer {
   }
 
   start() {
-    console.log('🎵 Open DAW MCP Server gestartet')
-    console.log('📁 Output-Verzeichnis:', this.outputDir)
-    console.log('🔧 Verfügbare Tools:', Object.keys(this.tools).join(', '))
-    console.log('⏳ Warte auf JSON-RPC Requests...')
+    console.error('🎵 Open DAW MCP Server gestartet')
+    console.error('📁 Output-Verzeichnis:', this.outputDir)
+    console.error('🔧 Verfügbare Tools:', Object.keys(this.tools).join(', '))
+    console.error('⏳ Warte auf JSON-RPC Requests...')
 
     // STDIN für JSON-RPC Requests lesen
     process.stdin.setEncoding('utf8')

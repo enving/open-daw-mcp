@@ -9,6 +9,7 @@ Ein **Model Context Protocol (MCP) Server** für sprachgesteuerte Songerstellung
 ## 🎵 Features
 
 ### ✅ Implementiert
+- **IONOS LLM Integration** - Sprachgesteuerte Songerstellung über IONOS AI Model Hub
 - **Sprachgesteuerte Songerstellung** über natürliche Beschreibungen
 - **MIDI-Generierung** für DAW-Integration
 - **Audio-Generierung** mit erweitertem Fallback-System
@@ -16,199 +17,185 @@ Ein **Model Context Protocol (MCP) Server** für sprachgesteuerte Songerstellung
 - **Künstler-Referenz-Erkennung**: Tame Impala, Daft Punk, Aphex Twin, etc.
 - **JSON-RPC Kommunikation** ohne MCP SDK
 - **Stil-spezifische Audio-Presets** mit verschiedenen Wellenformen und Effekten
+- **Robuste Fehlerbehandlung** mit Fallback-Systemen
 
 ### 🎛️ Audio-Engine Features
 - **Verschiedene Wellenformen**: Sinus, Sägezahn, Rechteck, Dreieck
 - **Multi-Track Audio**: Bass, Lead, Pad-Spuren
-- **Effekte**: Reverb, Delay, Filter
-- **Akkord-Progressionen** und Melodien
-- **Stil-spezifische Presets** für jeden Musikstil
-- **Fallback-System** für robuste Audio-Generierung
+- **Effekte**: Reverb, Delay, Filter, Distortion, Chorus
+- **Stil-spezifische Presets** für alle Musikstile
+- **Tone.js Integration** mit Node.js Fallback
 
-## 🚀 Schnellstart
+### 🤖 IONOS LLM Integration
+- **IONOS AI Model Hub** für intelligente Song-Generierung
+- **Strukturierte Song-Daten**: Titel, Stil, Tempo, Tonart, Struktur, Instrumente
+- **JSON-Response-Parsing** mit Fallback-Logik
+- **Daten-Normalisierung** für Audio-Engine-Kompatibilität
 
-### Installation
+## 🚀 Installation
+
 ```bash
+# Repository klonen
 git clone https://github.com/your-username/open-daw-mcp.git
 cd open-daw-mcp
+
+# Dependencies installieren
 npm install
+
+# Umgebungsvariablen konfigurieren
+cp env.example .env
+# IONOS_API_TOKEN und IONOS_API_URL in .env setzen
 ```
+
+## 🔧 Konfiguration
+
+### IONOS AI Model Hub Setup
+1. **API-Token generieren** im IONOS Data Center Designer (DCD)
+2. **Modell auswählen** (z.B. `meta-llama/Meta-Llama-3.1-8B-Instruct`)
+3. **Umgebungsvariablen setzen**:
+   ```env
+   IONOS_API_TOKEN=dein_token_hier
+   IONOS_API_URL=https://openai.inference.de-txl.ionos.com/v1
+   ```
+
+## 🎼 Verwendung
 
 ### MCP Server starten
 ```bash
 node src/server/manual-mcp-server.js
 ```
 
-### Testen
+### Tests ausführen
 ```bash
-node test-manual-mcp-server.js
+# IONOS LLM Integration testen
+node test-ionos-mcp-integration.js
+
+# Einzelne Komponenten testen
+node test-tone-audio-engine.js
+node ionos-llm-test.js
 ```
 
-## 🎼 Verfügbare Tools
+### Verfügbare Tools
+1. **`create_song_from_description`** - Erstellt Songs aus natürlichen Sprachbeschreibungen
+2. **`list_available_tools`** - Listet alle verfügbaren Tools auf
+3. **`list_music_styles`** - Zeigt unterstützte Musikstile
 
-### 1. `create_song_from_description`
-Erstellt einen kompletten Song basierend auf einer natürlichen Sprachbeschreibung.
-
-**Parameter:**
-- `description` (required): Beschreibung des gewünschten Songs
-- `style` (optional): Musikstil (techno, house, ambient, etc.)
-- `bpm` (optional): Beats per Minute
-- `key` (optional): Tonart
-
-**Beispiel:**
+### Beispiel-Request
 ```json
 {
-  "description": "\"Dreamy Psychedelic Journey\" - Ein psychedelischer Song im Stil von Tame Impala",
-  "style": "psychedelic_rock",
-  "bpm": 85,
-  "key": "F#"
+  "jsonrpc": "2.0",
+  "id": 1,
+  "method": "tools/call",
+  "params": {
+    "name": "create_song_from_description",
+    "arguments": {
+      "description": "Ein psychedelischer Techno-Track im Stil von Tame Impala",
+      "style": "Techno",
+      "artist": "Tame Impala"
+    }
+  }
 }
 ```
 
-### 2. `analyze_song_description`
-Analysiert eine Song-Beschreibung und schlägt Parameter vor.
+## 📁 Projektstruktur
 
-### 3. `list_music_styles`
-Zeigt alle verfügbaren Musikstile mit BPM-Bereichen und Charakteristika.
-
-## 🎭 Unterstützte Musikstile
-
-| Stil | BPM | Charakteristika | Referenz-Künstler |
-|------|-----|-----------------|-------------------|
-| **Techno** | 120-140 | Repetitive, Industrial | Carl Cox |
-| **House** | 120-130 | Groovy, Soulful | Daft Punk |
-| **Ambient** | 60-90 | Atmospheric, Ethereal | Aphex Twin |
-| **Trance** | 130-150 | Euphoric, Uplifting | Deadmau5 |
-| **Drum & Bass** | 160-180 | Fast, Complex | Pendulum |
-| **Psychedelic Rock** | 80-95 | Dreamy, Reverb-heavy | Tame Impala |
-
-## 📁 Output
-
-Der Server erstellt zwei Dateitypen:
-
-1. **MIDI-Dateien** (`.mid`) - Für DAW-Integration
-2. **Audio-Dateien** (`.wav`) - Mit verbesserter Qualität
-
-**Beispiel-Output:**
 ```
-output/
-├── Dreamy Psychedelic Journey_1751457511562.mid
-├── audio_psychedelic_rock_1751457511566.wav
-├── Industrial Techno Beat_1751457511966.mid
-└── audio_techno_1751457511966.wav
+open-daw-mcp/
+├── src/
+│   ├── server/
+│   │   └── manual-mcp-server.js    # MCP Server mit IONOS Integration
+│   ├── audio/
+│   │   └── tone-audio-engine.js    # Audio-Engine mit Fallback
+│   ├── ionos/
+│   │   └── ionos-client.js         # IONOS LLM Client
+│   └── types/
+│       └── index.ts                # TypeScript Definitionen
+├── output/                         # Generierte MIDI/Audio-Dateien
+├── tests/                          # Test-Dateien
+└── docs/                           # Dokumentation
 ```
 
-## 🔧 Technische Details
+## 🎵 Unterstützte Musikstile
+
+- **Techno** - Industrielle Beats, hypnotische Loops
+- **House** - Groove-basierte Rhythmen, Soul-Elemente
+- **Ambient** - Atmosphärische Klanglandschaften
+- **Trance** - Euphorische Melodien, ansteigende Energie
+- **Drum & Bass** - Schnelle Breakbeats, Bass-Lines
+- **Psychedelic Rock** - Experimentelle Klänge, Reverb-Effekte
+- **Electronic** - Moderne elektronische Musik
+- **Synthwave** - Retro-Futuristische Klänge
+- **Downtempo** - Entspannte, langsame Rhythmen
+- **Experimental** - Avantgarde-Kompositionen
+
+## 🔄 Workflow
+
+1. **Sprachbeschreibung** → IONOS LLM API
+2. **Strukturierte Song-Daten** → Normalisierung
+3. **MIDI-Generierung** → DAW-Integration
+4. **Audio-Generierung** → Fallback-System
+5. **Dateien speichern** → Output-Verzeichnis
+
+## 🛠️ Technische Details
 
 ### Audio-Engine
-- **Primär**: Tone.js (Browser-basiert)
-- **Fallback**: Native WAV-Generierung mit erweiterten Features
-- **Kompatibilität**: Node.js mit Web Audio API Polyfill
+- **Tone.js** für Browser-kompatible Audio-Synthese
+- **Web Audio API Polyfill** für Node.js
+- **Fallback-System** für robuste Audio-Generierung
+- **Stil-spezifische Presets** mit verschiedenen Wellenformen
 
-### MCP Integration
-- **Protokoll**: JSON-RPC 2.0
-- **SDK**: Kein MCP SDK (manuelle Implementierung)
-- **Kommunikation**: STDIN/STDOUT
+### IONOS Integration
+- **OpenAI-kompatible API** für einfache Integration
+- **JSON-Response-Parsing** mit Fehlerbehandlung
+- **Daten-Normalisierung** für Audio-Engine-Kompatibilität
+- **Fallback-Logik** für nicht-JSON Antworten
 
-### Architektur
-```
-src/
-├── server/
-│   └── manual-mcp-server.js    # Haupt-MCP Server
-├── audio/
-│   └── tone-audio-engine.js    # Audio-Engine mit Fallback
-├── midi/                       # MIDI-Generierung
-└── types/                      # TypeScript Definitionen
-```
-
-## 🧪 Tests
-
-### Automatisierte Tests
-```bash
-# Vollständiger Test-Suite
-node test-manual-mcp-server.js
-
-# Einzelne Komponenten
-node test-tone-audio-engine.js
-```
-
-### Test-Coverage
-- ✅ Tools auflisten
-- ✅ Musikstile auflisten  
-- ✅ Song-Beschreibung analysieren
-- ✅ Song erstellen (verschiedene Stile)
-- ✅ MIDI-Generierung
-- ✅ Audio-Generierung (Fallback)
-- ✅ Fehlerbehandlung
+### MCP Server
+- **JSON-RPC 2.0** ohne SDK-Abhängigkeiten
+- **Robuste Fehlerbehandlung** mit detaillierten Logs
+- **Modulare Tool-Architektur** für einfache Erweiterungen
 
 ## 🚧 Roadmap
 
 ### Phase 1: Grundfunktionen ✅
 - [x] MCP Server ohne SDK
-- [x] Sprachgesteuerte Songerstellung
+- [x] IONOS LLM Integration
+- [x] Audio-Engine mit Fallback
 - [x] MIDI-Generierung
-- [x] Audio-Generierung (Fallback)
 - [x] Multi-Style Support
 
-### Phase 2: Erweiterte Features 🔄
-- [ ] Ardour-Integration
-- [ ] C++ Synthesizer (ZynAddSubFX, FluidSynth)
-- [ ] Erweiterte Effekte
-- [ ] Sample-Integration
-- [ ] Mixing-Funktionen
+### Phase 2: Erweiterte Komposition 🎯
+- [ ] **Iterative Song-Entwicklung** mit Benutzer-Interaktion
+- [ ] **Vollständige Song-Strukturen** (Chords, Progression, Komposition)
+- [ ] **Multi-Track Audio** mit verschiedenen Instrumenten
+- [ ] **Längere Song-Dauer** (3-5 Minuten)
+- [ ] **Ardour DAW Integration**
 
-### Phase 3: Cloud-Deployment 🚀
-- [ ] Docker-Container
-- [ ] IONOS Cloud-VM
-- [ ] API-Endpoints
-- [ ] Web-Interface
-
-## 🐳 Docker
-
-```dockerfile
-FROM node:18-alpine
-WORKDIR /app
-COPY package*.json ./
-RUN npm install
-COPY . .
-EXPOSE 3000
-CMD ["node", "src/server/manual-mcp-server.js"]
-```
-
-## 🌐 Cloud-Deployment
-
-### IONOS Cloud-VM Anforderungen
-- **OS**: Ubuntu 22.04 LTS
-- **RAM**: 4GB (für Audio-Verarbeitung)
-- **Storage**: 20GB SSD
-- **CPU**: 2 vCores
-- **Netzwerk**: 100 Mbps
-
-### Deployment-Steps
-1. VM erstellen und konfigurieren
-2. Node.js und Dependencies installieren
-3. Docker-Container deployen
-4. MCP Server als Service starten
-5. Monitoring und Logging einrichten
+### Phase 3: Professionelle Features
+- [ ] **C++ Synthesizer Integration** (ZynAddSubFX, FluidSynth)
+- [ ] **Cloud-VM Deployment** (IONOS)
+- [ ] **Docker-Containerisierung**
+- [ ] **Web-Interface** für Song-Erstellung
 
 ## 🤝 Beitragen
 
 1. Fork das Repository
-2. Feature-Branch erstellen (`git checkout -b feature/amazing-feature`)
-3. Änderungen committen (`git commit -m 'Add amazing feature'`)
-4. Branch pushen (`git push origin feature/amazing-feature`)
-5. Pull Request erstellen
+2. Erstelle einen Feature-Branch
+3. Implementiere deine Änderungen
+4. Teste gründlich
+5. Erstelle einen Pull Request
 
 ## 📄 Lizenz
 
-Dieses Projekt ist unter der MIT-Lizenz lizenziert - siehe [LICENSE](LICENSE) Datei für Details.
+MIT License - siehe [LICENSE](LICENSE) Datei.
 
 ## 🙏 Danksagungen
 
-- **Tone.js** für die Audio-Engine
+- **IONOS** für die AI Model Hub API
+- **Tone.js** für die Audio-Synthese
 - **Ardour** für die DAW-Integration
 - **MCP Community** für das Protokoll
 
 ---
 
-**Status**: ✅ Funktionsfähig - MCP Server mit erweiterter Audio-Engine erfolgreich getestet! 
+**🎵 Erstelle deine eigenen Songs mit natürlicher Sprache!** 
