@@ -1,6 +1,7 @@
 # Open DAW MCP Server
 
-Ein **Model Context Protocol (MCP) Server** für sprachgesteuerte Songerstellung und DAW-Steuerung, insbesondere für **Ardour**.
+Ein **Model Context Protocol (MCP) Server bzw. OpenAI-kompatibler HTTP Server** für sprachgesteuerte Songerstellung UI über OpenWebUI
+
 
 ## 🎯 Zielbild
 
@@ -315,17 +316,3 @@ Siehe [MPE-Integration Dokumentation](docs/mpe-integration.md) für Details.
 4. Teste gründlich
 5. Erstelle einen Pull Request
 
-## 📄 Lizenz
-
-MIT License - siehe [LICENSE](LICENSE) Datei.
-
-## 🙏 Danksagungen
-
-- **IONOS** für die AI Model Hub API
-- **Tone.js** für die Audio-Synthese
-- **Ardour** für die DAW-Integration
-- **MCP Community** für das Protokoll
-
----
-
-**🎵 Erstelle deine eigenen Songs mit natürlicher Sprache!** 
