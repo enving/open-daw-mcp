@@ -1,178 +1,182 @@
-import { IONOSRequest, IONOSResponse } from '../types/index.js'
+import fetch from 'node-fetch';
+import dotenv from 'dotenv';
+dotenv.config();
+
+export interface IONOSConfig {
+  apiUrl: string;
+  apiToken: string;
+  model: string;
+}
+
+export interface SongGenerationRequest {
+  description: string;
+  style?: string;
+  artist?: string;
+  tempo?: number;
+  key?: string;
+}
+
+export interface SongGenerationResponse {
+  success: boolean;
+  songData?: {
+    title: string;
+    style: string;
+    tempo: number;
+    key: string;
+    structure: string[];
+    instruments: string[];
+    description: string;
+  };
+  error?: string;
+}
 
 export class IONOSClient {
-  private apiUrl: string
-  private apiToken: string
+  private config: IONOSConfig;
 
   constructor() {
-    this.apiUrl = process.env.IONOS_API_URL || 'https://api.ionos.com/v1/ai/chat/completions'
-    this.apiToken = process.env.IONOS_API_TOKEN || ''
+    this.config = {
+      apiUrl: process.env.IONOS_API_URL || 'https://openai.inference.de-txl.ionos.com/v1',
+      apiToken: process.env.IONOS_API_TOKEN || '',
+      model: 'meta-llama/Meta-Llama-3.1-8B-Instruct'
+    };
+  }
+
+  async generateSongFromDescription(request: SongGenerationRequest): Promise<SongGenerationResponse> {
+    try {
+      const prompt = this.buildSongPrompt(request);
+      
+      const response = await fetch(`${this.config.apiUrl}/chat/completions`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${this.config.apiToken}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          model: this.config.model,
+          messages: [
+            {
+              role: 'system',
+              content: `Du bist ein professioneller Musikproduzent und Songwriter. 
+              Erstelle detaillierte Song-Beschreibungen basierend auf natürlichen Sprachbeschreibungen.
+              Antworte immer im folgenden JSON-Format:
+              {
+                "title": "Song-Titel",
+                "style": "Musikstil",
+                "tempo": 120,
+                "key": "C",
+                "structure": ["Intro", "Verse", "Chorus", "Verse", "Chorus", "Bridge", "Outro"],
+                "instruments": ["Bass", "Drums", "Synth", "Guitar"],
+                "description": "Detaillierte Beschreibung des Songs"
+              }`
+            },
+            {
+              role: 'user',
+              content: prompt
+            }
+          ],
+          temperature: 0.8,
+          max_tokens: 1000
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`IONOS API Error: ${response.status} ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      const content = data.choices?.[0]?.message?.content;
+      
+      if (!content) {
+        throw new Error('Keine Antwort von IONOS API erhalten');
+      }
+
+      // Versuche JSON aus der Antwort zu extrahieren
+      const songData = this.extractJSONFromResponse(content);
+      
+      return {
+        success: true,
+        songData
+      };
+
+    } catch (error) {
+      console.error('IONOS API Fehler:', error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unbekannter Fehler'
+      };
+    }
+  }
+
+  private buildSongPrompt(request: SongGenerationRequest): string {
+    let prompt = `Erstelle einen Song basierend auf dieser Beschreibung: "${request.description}"`;
     
-    if (!this.apiToken) {
-      throw new Error('IONOS_API_TOKEN ist nicht in der .env Datei konfiguriert')
+    if (request.style) {
+      prompt += `\nStil: ${request.style}`;
     }
+    
+    if (request.artist) {
+      prompt += `\nInspiriert von: ${request.artist}`;
+    }
+    
+    if (request.tempo) {
+      prompt += `\nTempo: ${request.tempo} BPM`;
+    }
+    
+    if (request.key) {
+      prompt += `\nTonart: ${request.key}`;
+    }
+    
+    prompt += `\n\nErstelle eine detaillierte Song-Beschreibung mit Titel, Stil, Tempo, Tonart, Struktur und Instrumenten.`;
+    
+    return prompt;
   }
 
-  async generateSynthPattern(description: string, bpm: number = 120, key: string = 'C', scale: string = 'major'): Promise<string> {
-    const systemPrompt = `Du bist ein Musikproduzent und Synthesizer-Experte. Erstelle einen Synthesizer-Loop basierend auf der Beschreibung des Benutzers.
-
-Wichtige Regeln:
-- Antworte NUR mit einem JSON-Objekt
-- Verwende die angegebene Tonart und Skala
-- Erstelle einen Loop, der sich gut wiederholt
-- Verwende realistische MIDI-Noten und Timing
-- Berücksichtige, dass dies für Ardour DAW ist
-
-JSON-Format:
-{
-  "pattern": [
-    {
-      "note": "C4",
-      "velocity": 80,
-      "duration": 0.5,
-      "startTime": 0
-    }
-  ],
-  "bpm": 120,
-  "key": "C",
-  "scale": "major",
-  "description": "Kurze Beschreibung des Loops",
-  "suggested_plugin": "ZynAddSubFX",
-  "plugin_preset": "Analog Lead"
-}
-
-Beschreibung: ${description}
-BPM: ${bpm}
-Tonart: ${key} ${scale}`
-
-    const request: IONOSRequest = {
-      model: 'gpt-4', // oder das verfügbare IONOS Modell
-      messages: [
-        {
-          role: 'system',
-          content: systemPrompt
-        },
-        {
-          role: 'user',
-          content: `Erstelle einen Synthesizer-Loop für Ardour DAW: "${description}"`
-        }
-      ],
-      temperature: 0.7,
-      max_tokens: 1000
-    }
-
+  private extractJSONFromResponse(content: string): any {
     try {
-      const response = await fetch(this.apiUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${this.apiToken}`
-        },
-        body: JSON.stringify(request)
-      })
-
-      if (!response.ok) {
-        throw new Error(`IONOS API Fehler: ${response.status} ${response.statusText}`)
-      }
-
-      const data: IONOSResponse = await response.json()
-      return data.choices[0]?.message?.content || ''
-    } catch (error) {
-      console.error('IONOS API Fehler:', error)
-      throw error
-    }
-  }
-
-  async generateArdourCommand(description: string): Promise<string> {
-    const systemPrompt = `Du bist ein Ardour DAW Experte. Übersetze die Beschreibung des Benutzers in Ardour-spezifische Befehle.
-
-Verfügbare Ardour-Funktionen:
-- Track erstellen (Audio/MIDI)
-- Aufnahme starten/stoppen
-- Transport steuern (Play/Stop/Record)
-- Plugins hinzufügen
-- Parameter setzen
-
-Antworte NUR mit einem JSON-Objekt:
-{
-  "commands": [
-    {
-      "type": "create_track",
-      "track_type": "midi",
-      "name": "Synthesizer Track"
-    },
-    {
-      "type": "add_plugin",
-      "plugin_name": "ZynAddSubFX",
-      "track_id": "midi_track_1"
-    }
-  ],
-  "description": "Was wird ausgeführt"
-}
-
-Beschreibung: ${description}`
-
-    const request: IONOSRequest = {
-      model: 'gpt-4',
-      messages: [
-        {
-          role: 'system',
-          content: systemPrompt
-        },
-        {
-          role: 'user',
-          content: `Übersetze in Ardour-Befehle: "${description}"`
-        }
-      ],
-      temperature: 0.5,
-      max_tokens: 800
-    }
-
-    try {
-      const response = await fetch(this.apiUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${this.apiToken}`
-        },
-        body: JSON.stringify(request)
-      })
-
-      if (!response.ok) {
-        throw new Error(`IONOS API Fehler: ${response.status} ${response.statusText}`)
-      }
-
-      const data: IONOSResponse = await response.json()
-      return data.choices[0]?.message?.content || ''
-    } catch (error) {
-      console.error('IONOS API Fehler:', error)
-      throw error
-    }
-  }
-
-  async parseSynthPattern(response: string): Promise<any> {
-    try {
-      const jsonMatch = response.match(/\{[\s\S]*\}/)
+      // Versuche direktes JSON-Parsing
+      return JSON.parse(content);
+    } catch {
+      // Versuche JSON aus dem Text zu extrahieren
+      const jsonMatch = content.match(/\{[\s\S]*\}/);
       if (jsonMatch) {
-        return JSON.parse(jsonMatch[0])
+        try {
+          return JSON.parse(jsonMatch[0]);
+        } catch {
+          // Fallback: Erstelle strukturierte Daten aus dem Text
+          return this.parseStructuredResponse(content);
+        }
       }
-      throw new Error('Kein gültiges JSON in der Antwort gefunden')
-    } catch (error) {
-      console.error('Fehler beim Parsen der Synthesizer-Pattern:', error)
-      throw error
+      
+      // Fallback: Erstelle strukturierte Daten aus dem Text
+      return this.parseStructuredResponse(content);
     }
   }
 
-  async parseArdourCommands(response: string): Promise<any> {
-    try {
-      const jsonMatch = response.match(/\{[\s\S]*\}/)
-      if (jsonMatch) {
-        return JSON.parse(jsonMatch[0])
+  private parseStructuredResponse(content: string): any {
+    // Fallback-Parser für nicht-JSON Antworten
+    const lines = content.split('\n');
+    const result: any = {
+      title: 'Generierter Song',
+      style: 'Electronic',
+      tempo: 120,
+      key: 'C',
+      structure: ['Intro', 'Verse', 'Chorus', 'Verse', 'Chorus', 'Bridge', 'Outro'],
+      instruments: ['Bass', 'Drums', 'Synth'],
+      description: content
+    };
+
+    // Versuche Informationen aus dem Text zu extrahieren
+    for (const line of lines) {
+      if (line.toLowerCase().includes('tempo') || line.includes('bpm')) {
+        const tempoMatch = line.match(/(\d+)/);
+        if (tempoMatch) result.tempo = parseInt(tempoMatch[1]);
       }
-      throw new Error('Kein gültiges JSON in der Antwort gefunden')
-    } catch (error) {
-      console.error('Fehler beim Parsen der Ardour-Befehle:', error)
-      throw error
+      if (line.toLowerCase().includes('key') || line.toLowerCase().includes('tonart')) {
+        const keyMatch = line.match(/[A-G][#b]?/);
+        if (keyMatch) result.key = keyMatch[0];
+      }
     }
+
+    return result;
   }
 } 
