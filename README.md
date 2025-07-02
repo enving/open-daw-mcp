@@ -173,6 +173,11 @@ Die OpenWebUI-MCP-Bridge ermöglicht es, Songs über das OpenWebUI Chat-Interfac
 
 ### OpenWebUI Setup
 
+
+Abkürzung:
+docker start openwebui
+localhost:3000 --> Admin Settings --> Konfigurationedatei importieren (ist im repo unter openwebui Ordner zu finden)
+
 1. **Bridge Server starten**:
    ```bash
    node src/server/index.ts
