@@ -74,20 +74,28 @@ cp env.example .env
 
 ## 🎼 Verwendung
 
-### MCP Server starten
+### HTTP Server starten (Empfohlen)
 ```bash
-node src/server/manual-mcp-server.js
-```
-
-### OpenWebUI Integration starten
-```bash
-# OpenWebUI Bridge Server starten
-node src/server/index.ts
+# Hauptserver mit OpenWebUI Integration starten
+node start-http-server.js
 
 # Server läuft auf http://localhost:3001
 # Audio-Dateien: http://localhost:3001/api/audio/
 # Function Endpoint: http://localhost:3001/api/openwebui/functions
 ```
+
+### Alternative: Nur MCP Server
+```bash
+# Nur MCP Server ohne OpenWebUI Integration
+node src/server/manual-mcp-server.js
+```
+
+### OpenWebUI Integration
+Der `start-http-server.js` startet automatisch:
+- MCP Server für Song-Erstellung
+- OpenWebUI Bridge für Chat-Integration
+- HTTP-Endpunkte für Audio-Dateien
+- WebSocket-Verbindung für Echtzeit-Kommunikation
 
 ### Tests ausführen
 ```bash
@@ -132,18 +140,23 @@ node ionos-llm-test.js
 
 ```
 open-daw-mcp/
+├── start-http-server.js            # Hauptserver (empfohlen)
 ├── src/
 │   ├── server/
-│   │   └── manual-mcp-server.js    # MCP Server mit IONOS Integration
+│   │   ├── manual-mcp-server.js    # MCP Server mit IONOS Integration
+│   │   └── index.js                # OpenWebUI Bridge
 │   ├── audio/
-│   │   └── tone-audio-engine.js    # Audio-Engine mit Fallback
+│   │   ├── tone-audio-engine.js    # Audio-Engine mit Fallback
+│   │   ├── mpe-midi-generator.js   # MPE MIDI 2.0 Generator
+│   │   ├── mpe-synth-engine.js     # MPE Synth Integration
+│   │   └── enhanced-mpe-audio-engine.js # Erweiterte MPE Audio Engine
 │   ├── ionos/
 │   │   └── ionos-client.js         # IONOS LLM Client
-│   └── types/
-│       └── index.ts                # TypeScript Definitionen
+│   └── web/
+│       └── openwebui-integration.js # OpenWebUI Integration
 ├── output/                         # Generierte MIDI/Audio-Dateien
-├── tests/                          # Test-Dateien
-└── docs/                           # Dokumentation
+├── docs/                           # Dokumentation
+└── env.example                     # Umgebungsvariablen Template
 ```
 
 ## 🎵 OpenWebUI Integration
@@ -174,14 +187,24 @@ Die OpenWebUI-MCP-Bridge ermöglicht es, Songs über das OpenWebUI Chat-Interfac
 
 ### OpenWebUI Setup
 
+**Schnellstart:**
+```bash
+# 1. HTTP Server starten
+node start-http-server.js
 
-Abkürzung:
+# 2. OpenWebUI starten (falls Docker verfügbar)
 docker start openwebui
-localhost:3000 --> Admin Settings --> Konfigurationedatei importieren (ist im repo unter openwebui Ordner zu finden)
+# Oder OpenWebUI lokal installieren
 
-1. **Bridge Server starten**:
+# 3. OpenWebUI konfigurieren
+# localhost:3000 → Admin Settings → Konfigurationsdatei importieren
+# (Konfigurationsdatei ist im repo unter openwebui/ zu finden)
+```
+
+**Manueller Setup:**
+1. **HTTP Server starten**:
    ```bash
-   node src/server/index.ts
+   node start-http-server.js
    ```
 
 2. **OpenWebUI konfigurieren**:
@@ -223,6 +246,30 @@ sudo apt install zynaddsubfx
 ```
 
 Siehe [MPE-Integration Dokumentation](docs/mpe-integration.md) für Details.
+
+### 🎛️ Interaktive MPE-Features
+
+**Individuelle Preset-Generierung**:
+- Jeder Song bekommt eigene MPE-Daten basierend auf Stil und Beschreibung
+- LLM-generierte Presets für Sound-Engine (z.B. "Tame Impala Gitarre", "aggressiver Synth")
+- Stil-spezifische MPE-Parameter für authentische Sounds
+
+**Interaktive Anpassungen**:
+- **MPE-Daten ändern**: "Mach das höher/tiefer" → MPE-Parameter anpassen
+- **Sound-Parameter ändern**: "Verwende aggressiveren Sound" → Preset-Parameter anpassen
+- **Echtzeit-Anpassungen** über natürliche Sprachbefehle
+
+**Beispiel-Interaktionen**:
+```
+"Erstelle einen Tame Impala ähnlichen Song"
+→ Individuelle MPE-Daten + "Tame Impala Gitarre" Preset
+
+"Mach die Gitarre höher"
+→ MPE Pressure-Range erhöht
+
+"Verwende einen aggressiveren Synth"
+→ Preset Filter-Frequency erhöht, Distortion hinzugefügt
+```
 
 ## 🎵 Unterstützte Musikstile
 
