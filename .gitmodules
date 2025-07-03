@@ -1,0 +1,3 @@
+[submodule "external/ardour-mcp"]
+	path = external/ardour-mcp
+	url = https://github.com/pyroqbit/ardour-mcp.git

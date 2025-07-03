@@ -53,9 +53,9 @@ export class IONOSClient {
         },
         body: JSON.stringify({
           model: this.config.model,
-          messages: [
-            {
-              role: 'system',
+      messages: [
+        {
+          role: 'system',
               content: `Du bist ein professioneller Musikproduzent und Songwriter. 
               Erstelle detaillierte Song-Beschreibungen basierend auf natürlichen Sprachbeschreibungen.
               Antworte immer im folgenden JSON-Format:
@@ -68,14 +68,14 @@ export class IONOSClient {
                 "instruments": ["Bass", "Drums", "Synth", "Guitar"],
                 "description": "Detaillierte Beschreibung des Songs"
               }`
-            },
-            {
-              role: 'user',
+        },
+        {
+          role: 'user',
               content: prompt
-            }
-          ],
+        }
+      ],
           temperature: 0.8,
-          max_tokens: 1000
+      max_tokens: 1000
         })
       });
 

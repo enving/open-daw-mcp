@@ -1,11 +1,10 @@
 # Open DAW MCP Server
 
-Ein **Model Context Protocol (MCP) Server bzw. OpenAI-kompatibler HTTP Server** für sprachgesteuerte Songerstellung UI über OpenWebUI
-
+Ein **Model Context Protocol (MCP) Server** für sprachgesteuerte Songerstellung mit professioneller DAW-Integration über OpenWebUI
 
 ## 🎯 Zielbild
 
-**"Erstelle mir einen Tame Impala ähnlichen Song"** → Vollständiger Song mit MIDI, Audio, Mixing und Effekten
+**"Erstelle mir einen Tame Impala ähnlichen Song"** → Vollständiger Song mit MIDI, Audio, Mixing und Effekten über professionelle DAW-Integration
 
 ## 🎵 Features
 
@@ -13,7 +12,7 @@ Ein **Model Context Protocol (MCP) Server bzw. OpenAI-kompatibler HTTP Server** 
 - **IONOS LLM Integration** - Sprachgesteuerte Songerstellung über IONOS AI Model Hub
 - **Sprachgesteuerte Songerstellung** über natürliche Beschreibungen
 - **Erweiterte MIDI-Generierung** mit strukturierten Song-Sektionen (Intro, Verse, Chorus, etc.)
-- **Audio-Generierung** mit erweitertem Fallback-System
+- **Tone.js Audio-Engine** mit Fallback-System
 - **Multi-Style Support**: Techno, House, Ambient, Trance, Drum & Bass, Psychedelic Rock
 - **Künstler-Referenz-Erkennung**: Tame Impala, Daft Punk, Aphex Twin, etc.
 - **JSON-RPC Kommunikation** ohne MCP SDK
@@ -21,8 +20,6 @@ Ein **Model Context Protocol (MCP) Server bzw. OpenAI-kompatibler HTTP Server** 
 - **Robuste Fehlerbehandlung** mit Fallback-Systemen
 - **Advanced DAW Engine** mit natürlicher Sprachsteuerung
 - **Multi-Track MIDI** mit separaten Spuren für Bass, Drums, Lead, Pad
-- **MPE MIDI 2.0 Support** - Polyphonic Expression für dynamischere Sounds
-- **MPE-Synth-Integration** - Quelloffene MPE-fähige Synthesizer (Surge XT, Vital, Helm, ZynAddSubFX)
 - **Datei-Management System** - Song-Registry mit Überschreibungsfunktion
 - **Audio-Streaming** - Direkte Audio-Bereitstellung im Chat über HTTP-Endpunkte
 
@@ -97,6 +94,30 @@ Der `start-http-server.js` startet automatisch:
 - HTTP-Endpunkte für Audio-Dateien
 - WebSocket-Verbindung für Echtzeit-Kommunikation
 
+### 🎛️ Ardour DAW Integration
+Das Projekt integriert das [Ardour MCP Server Repository](https://github.com/pyroqbit/ardour-mcp) als Git Submodule:
+
+```bash
+# Ardour MCP Server kompiliert automatisch beim ersten Start
+# Falls manuell kompiliert werden soll:
+cd external/ardour-mcp
+cargo build --release
+
+# Ardour DAW Engine verwenden
+import ArdourDAWEngine from './src/audio/ardour-daw-engine.js'
+
+const dawEngine = new ArdourDAWEngine()
+await dawEngine.initialize()
+await dawEngine.createSongProject(songData)
+await dawEngine.addMIDIToTracks(midiData)
+await dawEngine.playProject()
+```
+
+**Ardour Setup erforderlich:**
+- Ardour 6.x, 7.x, 8.x oder 9.x installiert
+- OSC aktiviert in Ardour (Edit > Preferences > Control Surfaces)
+- Listen Port auf 3819 gesetzt
+
 ### Tests ausführen
 ```bash
 # IONOS LLM Integration testen
@@ -112,12 +133,11 @@ node ionos-llm-test.js
 
 ### Verfügbare Tools
 1. **`create_song_from_description`** - Erstellt Songs aus natürlichen Sprachbeschreibungen
-2. **`create_mpe_song`** - Erstellt Songs mit MPE MIDI 2.0 für dynamischere Sounds
-3. **`list_available_tools`** - Listet alle verfügbaren Tools auf
-4. **`list_music_styles`** - Zeigt unterstützte Musikstile
-5. **`list_songs`** - Listet alle erstellten Songs auf
-6. **`get_song`** - Holt Details eines spezifischen Songs
-7. **`delete_song`** - Löscht einen Song und seine Dateien
+2. **`list_available_tools`** - Listet alle verfügbaren Tools auf
+3. **`list_music_styles`** - Zeigt unterstützte Musikstile
+4. **`list_songs`** - Listet alle erstellten Songs auf
+5. **`get_song`** - Holt Details eines spezifischen Songs
+6. **`delete_song`** - Löscht einen Song und seine Dateien
 
 ### Beispiel-Request
 ```json
@@ -146,14 +166,22 @@ open-daw-mcp/
 │   │   ├── manual-mcp-server.js    # MCP Server mit IONOS Integration
 │   │   └── index.js                # OpenWebUI Bridge
 │   ├── audio/
+│   │   ├── ardour-daw-engine.js    # Ardour DAW Integration
+│   │   ├── dexed-integration.js    # Dexed FM Synth Integration
+│   │   ├── open-daw-integration.js # Open DAW Integration
 │   │   ├── tone-audio-engine.js    # Audio-Engine mit Fallback
-│   │   ├── mpe-midi-generator.js   # MPE MIDI 2.0 Generator
-│   │   ├── mpe-synth-engine.js     # MPE Synth Integration
-│   │   └── enhanced-mpe-audio-engine.js # Erweiterte MPE Audio Engine
+│   │   ├── midi-generator.js       # MIDI-Generator
+│   │   ├── advanced-daw-engine.js  # Advanced DAW Engine
+│   │   └── enhanced-audio-engine.js # Erweiterte Audio Engine
+│   ├── integration/
+│   │   ├── ardour-mcp-bridge.js    # Ardour MCP Bridge
+│   │   └── openwebui-mcp-bridge.js # OpenWebUI Bridge
 │   ├── ionos/
 │   │   └── ionos-client.js         # IONOS LLM Client
 │   └── web/
 │       └── openwebui-integration.js # OpenWebUI Integration
+├── external/
+│   └── ardour-mcp/                 # Ardour MCP Server (Git Submodule)
 ├── output/                         # Generierte MIDI/Audio-Dateien
 ├── docs/                           # Dokumentation
 └── env.example                     # Umgebungsvariablen Template
@@ -198,7 +226,6 @@ docker start openwebui
 
 # 3. OpenWebUI konfigurieren
 # localhost:3000 → Admin Settings → Konfigurationsdatei importieren
-# (Konfigurationsdatei ist im repo unter openwebui/ zu finden)
 ```
 
 **Manueller Setup:**
@@ -215,61 +242,8 @@ docker start openwebui
 3. **Im Chat verwenden**:
    ```
    "Erstelle einen Techno-Song im Stil von Daft Punk"
-   "Erstelle einen MPE Song mit dynamischen Effekten"
+   "Erstelle einen psychedelischen Rocksong"
    ```
-
-### 🎹 MPE MIDI 2.0 Integration
-
-Das System unterstützt jetzt MPE (MIDI Polyphonic Expression) und MIDI 2.0 für ausdrucksstärkere Sounds:
-
-- **Polyphonic Expression**: Jeder Ton kann individuell gesteuert werden
-- **Pressure Control**: Dynamischer Druck für jeden Ton
-- **Timbre Control**: Timbre-Variation pro Ton
-- **Pitch Bend**: Individuelle Pitch-Bends pro Ton
-
-**Unterstützte MPE-Synths**:
-- Surge XT (quelloffen)
-- Vital (Wavetable)
-- Helm (modular)
-- ZynAddSubFX (additiv/subtraktiv)
-
-**Installation**:
-```bash
-# Surge XT (empfohlen)
-sudo apt install surge-xt
-
-# Helm
-sudo apt install helm
-
-# ZynAddSubFX
-sudo apt install zynaddsubfx
-```
-
-Siehe [MPE-Integration Dokumentation](docs/mpe-integration.md) für Details.
-
-### 🎛️ Interaktive MPE-Features
-
-**Individuelle Preset-Generierung**:
-- Jeder Song bekommt eigene MPE-Daten basierend auf Stil und Beschreibung
-- LLM-generierte Presets für Sound-Engine (z.B. "Tame Impala Gitarre", "aggressiver Synth")
-- Stil-spezifische MPE-Parameter für authentische Sounds
-
-**Interaktive Anpassungen**:
-- **MPE-Daten ändern**: "Mach das höher/tiefer" → MPE-Parameter anpassen
-- **Sound-Parameter ändern**: "Verwende aggressiveren Sound" → Preset-Parameter anpassen
-- **Echtzeit-Anpassungen** über natürliche Sprachbefehle
-
-**Beispiel-Interaktionen**:
-```
-"Erstelle einen Tame Impala ähnlichen Song"
-→ Individuelle MPE-Daten + "Tame Impala Gitarre" Preset
-
-"Mach die Gitarre höher"
-→ MPE Pressure-Range erhöht
-
-"Verwende einen aggressiveren Synth"
-→ Preset Filter-Frequency erhöht, Distortion hinzugefügt
-```
 
 ## 🎵 Unterstützte Musikstile
 
@@ -321,39 +295,71 @@ Siehe [MPE-Integration Dokumentation](docs/mpe-integration.md) für Details.
 - [x] Multi-Style Support
 - [x] Advanced DAW Engine mit natürlicher Sprachsteuerung
 
-### Phase 2: MIDI & Audio Manipulation 🎯
-- [ ] **MIDI-Sektionen bearbeiten**: Chorus, Verse, Bridge einzeln manipulieren
-- [ ] **MPE (MIDI Polyphonic Expression) Support** für erweiterte MIDI-Kontrolle
-- [ ] **MIDI-Import/Export** für externe DAWs
-- [ ] **Audio-Manipulation**: EQ, Kompressor, Limiter, Gate
-- [ ] **Erweiterte Audio-Effekte**: Phaser, Flanger, Auto-Filter, Bitcrusher
-- [ ] **Sample-Library Integration** für realistische Instrumente
-- [ ] **Automation**: Automatische Parameter-Animation über Zeit
+### Phase 2: Ardour DAW Integration 🎯
+- [x] **Ardour MCP Server Integration** - Git Submodule Integration ✅
+- [x] **Ardour MCP Bridge** - Node.js ↔ Rust Bridge ✅
+- [x] **Ardour DAW Engine** - High-Level DAW Interface ✅
+- [ ] **MPE (MIDI Polyphonic Expression) Support** - Echte MPE-Integration
+- [ ] **MIDI 2.0 Support** - Moderne MIDI-Features
+- [ ] **VST/AU Plugin Integration** - Professionelle Synthesizer
+- [ ] **Real-time Audio Processing** - Live-Audio-Verarbeitung
+- [ ] **Studio-Qualität Audio** - Professionelle Audio-Exporte
 
-### Phase 3: DAW-Integration & Erweiterte Features
-- [ ] **Ardour DAW Integration** über OSC (Open Sound Control)
-- [ ] **VST-Plugin Support** für externe Effekte
-- [ ] **Quelloffene DAW Integration**: LMMS, Ardour, Reaper
-- [ ] **Real-time Audio Processing** mit WebRTC
-- [ ] **Multi-User Collaboration** für gemeinsame Song-Entwicklung
-- [ ] **Version Control** für Song-Versionen
+### Phase 3: Erweiterte Features
+- [ ] **Web-basierte DAW-Features** - Browser-basierte Song-Editierung
+- [ ] **Multi-User Collaboration** - Gemeinsame Song-Entwicklung
+- [ ] **Version Control** - Song-Versionen verwalten
+- [ ] **Cloud-VM Deployment** - IONOS VM Integration
+- [ ] **Docker-Containerisierung** - Einfache Deployment
 
 ### Phase 4: Professionelle Features
-- [ ] **C++ Synthesizer Integration** (ZynAddSubFX, FluidSynth)
-- [ ] **Cloud-VM Deployment** (IONOS)
-- [ ] **Docker-Containerisierung**
-- [ ] **Web-Interface** für Song-Erstellung
-- [ ] **AI-basierte Song-Optimierung** mit Machine Learning
-- [ ] **Genre-übergreifende Fusion** für experimentelle Musik
+- [ ] **C++ Synthesizer Integration** - Native Audio-Performance
+- [ ] **Web-Interface** - Vollständige Web-DAW
+- [ ] **AI-basierte Song-Optimierung** - Machine Learning Integration
+- [ ] **Genre-übergreifende Fusion** - Experimentelle Musik
 
-### 🎛️ DAW-Funktionen (Nicht echte DAW, sondern erweiterte MIDI/Audio-Manipulation)
-- [ ] **Strukturierte MIDI-Editierung**: Sektionen einzeln bearbeiten
-- [ ] **Akkord-Progressions-Editor**: Visueller Akkord-Editor
-- [ ] **Melodie-Generator**: AI-basierte Melodie-Generierung
-- [ ] **Rhythm-Pattern-Editor**: Drum-Pattern-Erstellung
-- [ ] **Audio-Slicing**: Audio in Sektionen aufteilen
-- [ ] **Crossfade-Editor**: Übergänge zwischen Sektionen
-- [ ] **Mastering-Tools**: Finale Audio-Optimierung
+## 🎛️ Ardour DAW Integration ✅
+
+### Git Submodule Integration
+Das Projekt integriert das [Ardour MCP Server Repository](https://github.com/pyroqbit/ardour-mcp) als Git Submodule:
+
+```bash
+# Submodule Status prüfen
+git submodule status
+
+# Submodule Updates holen
+git submodule update --remote
+
+# Submodule initialisieren (nach Clone)
+git submodule init
+git submodule update
+```
+
+### Ardour MCP Bridge
+- **Node.js ↔ Rust Bridge** - Kommunikation zwischen JavaScript und Rust
+- **Automatische Kompilierung** - Cargo Build beim ersten Start
+- **JSON-RPC 2.0** - Standardisierte Kommunikation
+- **Event-System** - Echtzeit-Status-Updates
+
+### Ardour DAW Engine
+- **High-Level Interface** - Einfache DAW-Steuerung
+- **Song-Projekt-Management** - Automatische Projekt-Erstellung
+- **Track-Management** - MIDI-Tracks und Audio-Tracks
+- **Plugin-Integration** - VST/AU Plugin-Steuerung
+- **Export-Funktionen** - Studio-Qualität Audio-Export
+
+### VM-Setup (87.106.81.49)
+- **Ubuntu 22.04 LTS** - Stabile Audio-Plattform
+- **JACK Audio Server** - Professionelle Audio-Latenz
+- **Ardour 9.x** - Neueste DAW-Version
+- **MPE-fähige VSTs** - Surge XT, Helm, ZynAddSubFX
+
+### Integration Workflow
+1. **Sprachbeschreibung** → IONOS LLM
+2. **Song-Struktur** → MIDI-Generierung
+3. **Ardour-Session** → MCP Server
+4. **MPE-Daten** → VST-Integration
+5. **Audio-Export** → Studio-Qualität
 
 ## 🤝 Beitragen
 
