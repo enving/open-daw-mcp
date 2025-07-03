@@ -299,6 +299,9 @@ docker start openwebui
 - [x] **Ardour MCP Server Integration** - Git Submodule Integration ✅
 - [x] **Ardour MCP Bridge** - Node.js ↔ Rust Bridge ✅
 - [x] **Ardour DAW Engine** - High-Level DAW Interface ✅
+- [x] **VM Setup & Installation** - Ubuntu 22.04 + Ardour 6.9.0 ✅
+- [x] **JACK Audio Server** - Professionelle Audio-Latenz ✅
+- [x] **Audio-Komponenten** - FluidSynth, FFmpeg, QJackCtl ✅
 - [ ] **MPE (MIDI Polyphonic Expression) Support** - Echte MPE-Integration
 - [ ] **MIDI 2.0 Support** - Moderne MIDI-Features
 - [ ] **VST/AU Plugin Integration** - Professionelle Synthesizer
@@ -348,18 +351,66 @@ git submodule update
 - **Plugin-Integration** - VST/AU Plugin-Steuerung
 - **Export-Funktionen** - Studio-Qualität Audio-Export
 
-### VM-Setup (87.106.81.49)
-- **Ubuntu 22.04 LTS** - Stabile Audio-Plattform
-- **JACK Audio Server** - Professionelle Audio-Latenz
-- **Ardour 9.x** - Neueste DAW-Version
-- **MPE-fähige VSTs** - Surge XT, Helm, ZynAddSubFX
+### VM-Setup (87.106.81.49) ✅
+- **Ubuntu 22.04.5 LTS** - Stabile Audio-Plattform ✅
+- **JACK Audio Server 1.9.20** - Professionelle Audio-Latenz ✅
+- **Ardour 6.9.0** - Professionelle DAW-Version ✅
+- **QJackCtl 0.9.6** - JACK Audio Connection Kit GUI ✅
+- **FFmpeg 4.4.2** - Video/Audio-Verarbeitung ✅
+- **PulseAudio mit JACK-Modul** - Audio-Routing ✅
+- **FluidSynth 2.2.5** - Software-Synthesizer ✅
+- **TimGM6mb Soundfont** - GM-Soundbank ✅
+
+**Installierte Audio-Komponenten:**
+- JACK Audio Server (jackd2)
+- QJackCtl (GUI für JACK)
+- PulseAudio mit JACK-Integration
+- FluidSynth mit GM-Soundfont
+- FFmpeg für Audio/Video-Export
+- Ardour LV2-Plugins
+- Video-Timeline Support
+
+**Verfügbare DAW-Features:**
+- MIDI-Sequencing
+- Audio-Recording
+- Plugin-Hosting (LV2)
+- Video-Synchronisation
+- OSC-Steuerung (Port 3819)
+- JACK-Audio-Routing
+- Export in verschiedene Formate
 
 ### Integration Workflow
 1. **Sprachbeschreibung** → IONOS LLM
 2. **Song-Struktur** → MIDI-Generierung
-3. **Ardour-Session** → MCP Server
-4. **MPE-Daten** → VST-Integration
-5. **Audio-Export** → Studio-Qualität
+3. **Ardour-Session** → MCP Server (OSC Port 3819)
+4. **JACK Audio Routing** → Real-time Audio-Verarbeitung
+5. **LV2 Plugin Integration** → Synthesizer und Effekte
+6. **Audio-Export** → Studio-Qualität (WAV, MP3, etc.)
+
+### VM-Verbindung für Kollegen
+**Option 1: Private Key weitergeben (Einfachste)**
+```bash
+# Für dich: Kopiere den Private Key an deinen Kollegen
+scp ~/.ssh/vm_key kollege@seine-ip:~/.ssh/
+scp ~/.ssh/vm_key.pub kollege@seine-ip:~/.ssh/
+
+# Für deinen Kollegen:
+chmod 600 ~/.ssh/vm_key
+ssh -i ~/.ssh/vm_key root@87.106.81.49
+```
+
+**Option 2: Neuen SSH Key für Kollegen erstellen (Sicherer)**
+```bash
+# Für deinen Kollegen:
+ssh-keygen -t rsa -b 4096 -f ~/.ssh/ardour_vm_key
+cat ~/.ssh/ardour_vm_key.pub  # Public Key an dich senden
+
+# Für dich (in der VM):
+echo "PUBLIC_KEY_DES_KOLLEGEN" >> ~/.ssh/authorized_keys
+
+# Für deinen Kollegen:
+ssh -i ~/.ssh/ardour_vm_key root@87.106.81.49
+```
 
 ## 🤝 Beitragen
 
