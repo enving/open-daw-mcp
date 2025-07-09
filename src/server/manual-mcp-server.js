@@ -7,6 +7,7 @@ import ToneAudioEngine from '../audio/tone-audio-engine.js'
 import BetterAudioEngine from '../audio/better-audio-engine.js'
 import VariableAudioEngine from '../audio/variable-audio-engine.js'
 import AdvancedDAWEngine from '../audio/advanced-daw-engine.js'
+import ArdourOSCDAWEngine from '../audio/ardour-osc-daw-engine-vm.js'
 import MIDIGenerator from '../audio/midi-generator.js'
 import MPEMIDIGenerator from '../audio/mpe-midi-generator.js'
 import MPESynthEngine from '../audio/mpe-synth-engine.js'
@@ -34,6 +35,9 @@ class ManualMCPServer {
     
     // Advanced DAW Engine initialisieren
     this.dawEngine = new AdvancedDAWEngine()
+    
+    // Ardour OSC DAW Engine für VM-Integration
+    this.ardourOSCDAWEngine = new ArdourOSCDAWEngine()
     
     // MIDI Generator initialisieren
     this.midiGenerator = new MIDIGenerator()
@@ -205,6 +209,69 @@ class ManualMCPServer {
           },
           required: ['track_name', 'effect_type']
         }
+      },
+      create_song_with_ardour: {
+        description: 'Erstellt einen Song mit Ardour auf der VM über OSC',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            description: {
+              type: 'string',
+              description: 'Natürliche Sprachbeschreibung des gewünschten Songs'
+            },
+            style: {
+              type: 'string',
+              description: 'Optional: Musikstil (Techno, House, Ambient, etc.)'
+            },
+            artist: {
+              type: 'string',
+              description: 'Optional: Inspirierender Künstler'
+            },
+            songId: {
+              type: 'string',
+              description: 'Optional: ID für Song-Überschreibung'
+            }
+          },
+          required: ['description']
+        }
+      },
+      ardour_command: {
+        description: 'Führt Ardour-Befehle über OSC auf der VM aus',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            command: {
+              type: 'string',
+              description: 'Ardour-Befehl (z.B. "play", "stop", "record", "set_bpm 120")'
+            }
+          },
+          required: ['command']
+        }
+      },
+      ardour_status: {
+        description: 'Zeigt den aktuellen Ardour-Status auf der VM an',
+        inputSchema: {
+          type: 'object',
+          properties: {}
+        }
+      },
+      ardour_create_track: {
+        description: 'Erstellt einen neuen Track in Ardour auf der VM',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            name: {
+              type: 'string',
+              description: 'Name des Tracks'
+            },
+            type: {
+              type: 'string',
+              description: 'Typ des Tracks (audio, midi, bus)',
+              enum: ['audio', 'midi', 'bus']
+            }
+          },
+          required: ['name', 'type']
+        }
       }
     }
     
@@ -304,6 +371,14 @@ class ManualMCPServer {
         return await this.createTrack(args)
       case 'add_effect':
         return await this.addEffect(args)
+      case 'create_song_with_ardour':
+        return await this.createSongWithArdour(args)
+      case 'ardour_command':
+        return await this.executeArdourCommand(args)
+      case 'ardour_status':
+        return await this.getArdourStatus(args)
+      case 'ardour_create_track':
+        return await this.createArdourTrack(args)
       default:
         throw new Error(`Tool '${name}' nicht implementiert`)
     }
@@ -637,6 +712,176 @@ class ManualMCPServer {
         success: false,
         error: error.message,
         message: `Fehler beim Hinzufügen des Effekts: ${error.message}`
+      }
+    }
+  }
+
+  async createSongWithArdour(args) {
+    const { description, style, artist, songId } = args
+
+    console.log('🎵 Erstelle Song mit Ardour auf der VM...')
+
+    try {
+      let targetSongId = songId
+      if (!targetSongId) {
+        targetSongId = this.generateSongId(description)
+      } else if (this.songRegistry.has(targetSongId)) {
+        console.log(`🔄 Überschreibe bestehenden Song: ${targetSongId}`)
+        this.deleteSong(targetSongId)
+      }
+
+      // IONOS LLM API für Song-Generierung nutzen
+      const ionosResponse = await this.ionosClient.generateSongFromDescription({
+        description,
+        style,
+        artist
+      })
+
+      if (!ionosResponse.success) {
+        throw new Error(`IONOS API Fehler: ${ionosResponse.error}`)
+      }
+
+      const songData = ionosResponse.songData
+      console.log('✅ IONOS Song-Daten erhalten:', songData)
+
+      // Ardour OSC DAW Engine verwenden
+      console.log('🎵 Verwende Ardour OSC DAW Engine...')
+      const ardourResult = await this.ardourOSCDAWEngine.createSongWithArdour(
+        songData,
+        this.outputDir
+      )
+
+      if (!ardourResult.success) {
+        throw new Error('Ardour OSC DAW Engine fehlgeschlagen')
+      }
+
+      // Song im Registry registrieren
+      const files = {
+        midi: ardourResult.midi,
+        audio: ardourResult.audio
+      }
+      this.registerSong(targetSongId, songData, files)
+
+      return {
+        success: true,
+        song: {
+          id: targetSongId,
+          title: songData.title,
+          style: songData.style,
+          tempo: songData.tempo,
+          key: songData.key,
+          structure: songData.structure,
+          instruments: songData.instruments,
+          description: songData.description,
+          ardourEnabled: true // Ardour ist immer aktiviert
+        },
+        files: {
+          midi: ardourResult.midi,
+          audio: ardourResult.audio
+        },
+        urls: {
+          midi: `/api/midi/${ardourResult.midi}`,
+          audio: `/api/audio/${ardourResult.audio}`
+        },
+        ardour: {
+          enabled: true,
+          synth: this.mpeSynthEngine.currentSynth?.name || 'Enhanced MPE',
+          channels: this.mpeSynthEngine.mpeChannels
+        },
+        message: `Song mit Ardour auf der VM erfolgreich erstellt!`
+      }
+
+    } catch (error) {
+      console.error('Fehler bei Ardour Song-Erstellung:', error)
+      throw new Error(`Ardour Song-Erstellung fehlgeschlagen: ${error.message}`)
+    }
+  }
+
+  async executeArdourCommand(args) {
+    const { command } = args
+
+    console.log('🎛️ Führe Ardour-Befehl aus:', command)
+
+    try {
+      // Ardour OSC DAW Engine initialisieren falls noch nicht geschehen
+      if (!this.ardourOSCDAWEngine.isInitialized) {
+        await this.ardourOSCDAWEngine.initialize()
+      }
+
+      const result = await this.ardourOSCDAWEngine.processNaturalLanguageCommand(command)
+
+      return {
+        success: true,
+        result: result,
+        message: `Ardour-Befehl ausgeführt: ${result}`
+      }
+    } catch (error) {
+      console.error('❌ Ardour-Befehl Fehler:', error)
+      return {
+        success: false,
+        error: error.message,
+        message: `Fehler beim Ausführen des Ardour-Befehls: ${error.message}`
+      }
+    }
+  }
+
+  async getArdourStatus(args) {
+    console.log('📊 Hole Ardour-Status...')
+
+    try {
+      if (!this.ardourOSCDAWEngine.isInitialized) {
+        return {
+          success: true,
+          status: {
+            initialized: false,
+            message: 'Ardour OSC DAW Engine noch nicht initialisiert'
+          }
+        }
+      }
+
+      const status = this.ardourOSCDAWEngine.getStatus()
+
+      return {
+        success: true,
+        status: {
+          initialized: true,
+          ...status
+        }
+      }
+    } catch (error) {
+      console.error('❌ Ardour-Status Fehler:', error)
+      return {
+        success: false,
+        error: error.message
+      }
+    }
+  }
+
+  async createArdourTrack(args) {
+    const { name, type } = args
+
+    console.log(`🎵 Erstelle Track in Ardour auf der VM: ${name} (${type})`)
+
+    try {
+      if (!this.ardourOSCDAWEngine.isInitialized) {
+        await this.ardourOSCDAWEngine.initialize()
+      }
+
+      const trackId = await this.ardourOSCDAWEngine.createTrack(name, type)
+
+      return {
+        success: true,
+        track_id: trackId,
+        track_name: name,
+        track_type: type,
+        message: `Track "${name}" (${name}) in Ardour erfolgreich erstellt`
+      }
+    } catch (error) {
+      console.error('❌ Ardour Track-Erstellung Fehler:', error)
+      return {
+        success: false,
+        error: error.message,
+        message: `Fehler beim Erstellen des Tracks in Ardour: ${error.message}`
       }
     }
   }

@@ -22,6 +22,7 @@ Ein **Model Context Protocol (MCP) Server** für sprachgesteuerte Songerstellung
 - **Multi-Track MIDI** mit separaten Spuren für Bass, Drums, Lead, Pad
 - **Datei-Management System** - Song-Registry mit Überschreibungsfunktion
 - **Audio-Streaming** - Direkte Audio-Bereitstellung im Chat über HTTP-Endpunkte
+- **Grafische Oberfläche** - Ubuntu Desktop mit Audacity für visuelle Kontrolle
 
 ### 🎛️ Audio-Engine Features
 - **Verschiedene Wellenformen**: Sinus, Sägezahn, Rechteck, Dreieck
@@ -57,6 +58,62 @@ npm install
 cp env.example .env
 # IONOS_API_TOKEN und IONOS_API_URL in .env setzen
 ```
+
+## 🖥️ Grafische Oberfläche & Remote-Zugriff
+
+Das System läuft auf einer Ubuntu VM mit vollständiger Desktop-Umgebung. Sie können die grafische Oberfläche über verschiedene Methoden erreichen:
+
+### 🌐 XRDP Remote Desktop (Empfohlen)
+
+**Voraussetzung:** VPN-Verbindung zur VM (IP: 87.106.81.49)
+
+1. **VPN-Verbindung herstellen** zu Ihrer Ubuntu VM
+2. **Remote Desktop Client öffnen** (Windows: Remote Desktop, macOS: Microsoft Remote Desktop, Linux: Remmina)
+3. **Verbindung konfigurieren:**
+   - **Server:** `87.106.81.49`
+   - **Port:** `3389` (Standard RDP-Port)
+   - **Benutzer:** `root`
+   - **Passwort:** Ihr VM-Passwort
+
+4. **Nach der Anmeldung:**
+   - Ubuntu Desktop-Umgebung öffnet sich
+   - **Audacity** ist bereits installiert für Audio-Bearbeitung
+   - **Terminal** öffnen für Server-Management
+   - **Datei-Manager** für Zugriff auf generierte Audio/MIDI-Dateien
+
+### 🔧 Alternative: SSH mit X11-Forwarding
+
+```bash
+# Von Ihrem lokalen System aus:
+ssh -X root@87.106.81.49
+
+# Grafische Anwendungen starten:
+audacity &
+gnome-terminal &
+```
+
+### 📁 Datei-Zugriff
+
+Generierte Dateien finden Sie in der VM unter:
+- **Audio-Dateien:** `/opt/open-daw-mcp/output/`
+- **MIDI-Dateien:** `/opt/open-daw-mcp/output/`
+- **Server-Logs:** `/var/log/open-daw-mcp.log`
+
+### 🎵 Audacity für Audio-Bearbeitung
+
+Audacity ist bereits installiert und ermöglicht:
+- **Audio-Dateien öffnen** und bearbeiten
+- **Effekte anwenden** (Reverb, Echo, etc.)
+- **Mehrspur-Bearbeitung** für komplexe Arrangements
+- **Export** in verschiedene Formate
+
+### 🖥️ Desktop-Umgebung Features
+
+- **Ubuntu 22.04 Desktop** mit GNOME
+- **Vollständige Audio-Unterstützung** mit PulseAudio
+- **Datei-Manager** für einfache Navigation
+- **Terminal** für Server-Management
+- **Web-Browser** für OpenWebUI-Zugriff
 
 ## 🔧 Konfiguration
 
@@ -411,6 +468,76 @@ echo "PUBLIC_KEY_DES_KOLLEGEN" >> ~/.ssh/authorized_keys
 # Für deinen Kollegen:
 ssh -i ~/.ssh/ardour_vm_key root@87.106.81.49
 ```
+
+### 🖥️ Ardour Headless auf der VM (Xvfb)
+
+Um Ardour auf einer VM ohne grafische Oberfläche (Headless) zu betreiben, wird Xvfb als virtueller X-Server verwendet. Das Skript `start-ardour-vm.sh` automatisiert die komplette Einrichtung und den Start:
+
+```bash
+# Ardour auf der VM headless starten (mit OSC)
+./start-ardour-vm.sh
+```
+
+Das Skript erledigt:
+- Installation und Start von Xvfb (virtueller X-Server)
+- Erstellung der Ardour-Konfiguration mit aktiviertem OSC (Port 3819)
+- Start von Ardour in einer Xvfb-Session
+- Log-Ausgabe und Statusprüfung
+
+**Voraussetzungen:**
+- SSH-Zugang zur VM (Schlüssel in ~/.ssh/vm_key)
+- Ardour und Xvfb sind auf der VM installiert (wird automatisch geprüft)
+
+**Tipp:**
+Nach dem Start kannst du wie gewohnt per SSH-Tunnel auf den OSC-Port zugreifen:
+
+```bash
+ssh -i ~/.ssh/vm_key -L 9099:localhost:3819 root@87.106.81.49
+```
+
+Damit ist Ardour auf der VM für OSC- und MCP-Kommandos erreichbar.
+
+### 🔧 VM Integration Status
+
+**✅ Funktioniert:**
+- SSH-Tunnel zur VM
+- Ardour Headless-Start mit Xvfb
+- **Direkte OSC-Bridge zur VM** (neue Lösung!)
+- Transport-Controls (Play/Stop)
+- Navigation (Goto Start/End)
+- Track-Controls (Mute/Solo/Gain)
+- Utility-Funktionen (Toggle Click/Loop)
+- Aktionen über access_action
+
+**⚠️ In Entwicklung:**
+- MCP-Protokoll-Handshake (Initialisierung)
+- Vollständige Tool-Integration über MCP
+- Projekt-Management über MCP
+
+**Verfügbare Test-Skripte:**
+```bash
+# Direkte OSC-Bridge Test (empfohlen)
+node test-ardour-osc-vm.js
+
+# MCP-Bridge Test (experimentell)
+node test-ardour-vm-simple.js
+
+# Vollständiger MCP-Integrationstest
+node test-ardour-vm-integration.js
+```
+
+**Neue OSC-Bridge Features:**
+- Direkte OSC-Kommunikation ohne MCP-Protokoll
+- Robuste SSH-Tunnel-Verbindung
+- Vollständige Transport-Steuerung
+- Track-Management (Mute, Solo, Gain)
+- Utility-Funktionen (Click, Loop)
+- Aktionen über Ardour-Menüs
+
+**Troubleshooting:**
+- Falls Port 9099 belegt ist: `pkill -f "ssh.*9099"`
+- Falls MCP-Server hängt: `pkill -f "ardour_mcp_server"`
+- Ardour-Logs auf VM: `ssh -i ~/.ssh/vm_key root@87.106.81.49 "tail -f /tmp/ardour.log"`
 
 ## 🤝 Beitragen
 

@@ -24,6 +24,108 @@ class OpenWebUIIntegration {
   }
 
   setupRoutes() {
+    // OpenAPI Schema Endpoint (für OpenWebUI)
+    this.app.get('/openapi.json', (req, res) => {
+      try {
+        const openapiSchema = {
+          openapi: "3.0.0",
+          info: {
+            title: "Open DAW MCP Bridge",
+            version: "1.0.0",
+            description: "MCP Bridge für Song-Erstellung und Audio-Generierung"
+          },
+          servers: [
+            {
+              url: "http://87.106.81.49:3001",
+              description: "VM Server"
+            },
+            {
+              url: "https://open-daw-mcp-api.digitalalchemisten.de",
+              description: "Cloudflare Tunnel"
+            }
+          ],
+          paths: {
+            "/api/openwebui/functions": {
+              post: {
+                summary: "Execute function call",
+                operationId: "executeFunction",
+                requestBody: {
+                  required: true,
+                  content: {
+                    "application/json": {
+                      schema: {
+                        type: "object",
+                        properties: {
+                          function_name: {
+                            type: "string",
+                            description: "Name of the function to call",
+                            enum: ["create_song_from_description", "daw_command", "create_track", "add_effect"]
+                          },
+                          parameters: {
+                            type: "object",
+                            description: "Function parameters"
+                          }
+                        },
+                        required: ["function_name"]
+                      }
+                    }
+                  }
+                },
+                responses: {
+                  "200": {
+                    description: "Function executed successfully",
+                    content: {
+                      "application/json": {
+                        schema: {
+                          type: "object",
+                          properties: {
+                            success: { type: "boolean" },
+                            result: { type: "object" }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            },
+            "/api/health": {
+              get: {
+                summary: "Health check",
+                responses: {
+                  "200": {
+                    description: "Server is healthy",
+                    content: {
+                      "application/json": {
+                        schema: {
+                          type: "object",
+                          properties: {
+                            status: { type: "string" },
+                            message: { type: "string" }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          components: {
+            schemas: {}
+          }
+        }
+        
+        res.json(openapiSchema)
+      } catch (error) {
+        console.error('❌ Fehler beim Generieren des OpenAPI Schemas:', error)
+        res.status(500).json({
+          success: false,
+          error: error.message
+        })
+      }
+    })
+
     // API Routes
     this.app.get('/api/health', (req, res) => {
       res.json({ status: 'ok', message: 'Open DAW MCP Server running' })

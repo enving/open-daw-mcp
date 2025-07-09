@@ -9,16 +9,42 @@ class MPEMIDIGenerator {
       bass: 2,
       pad: 3,
       arp: 4,
-      fx: 5
+      fx: 5,
+      drum: 10
+    }
+    
+    // MPE Controller Mapping
+    this.mpeControllers = {
+      pressure: 0x40,      // Poly Pressure
+      timbre: 0x47,        // Timbre
+      slide: 0x5A,         // Slide
+      lift: 0x5B,          // Lift
+      glide: 0x5C,         // Glide
+      vibrato: 0x5D,       // Vibrato
+      volume: 0x07,        // Volume
+      pan: 0x0A,           // Pan
+      expression: 0x0B,    // Expression
+      modulation: 0x01     // Modulation
+    }
+    
+    // MIDI 2.0 Features
+    this.midi2Features = {
+      perNoteControllers: true,
+      noteExpression: true,
+      polyPressure: true,
+      channelPressure: true,
+      pitchBend: true,
+      programChange: true,
+      controlChange: true
     }
   }
 
   generateMPEMIDI(songData) {
-    console.log('🎼 Generiere MPE MIDI 2.0 für:', songData.title)
+    console.log('🎼 Generiere erweiterte MPE MIDI 2.0 für:', songData.title)
     
     const midiHeader = this.createMIDI2Header()
     const tempoTrack = this.createTempoTrack(songData.tempo)
-    const mpeTracks = this.createMPETracks(songData)
+    const mpeTracks = this.createExpressiveMPETracks(songData)
     
     return Buffer.concat([midiHeader, tempoTrack, ...mpeTracks])
   }
@@ -28,7 +54,7 @@ class MPEMIDIGenerator {
       0x4D, 0x54, 0x68, 0x64, // MThd
       0x00, 0x00, 0x00, 0x06, // Header length
       0x00, 0x02, // Format 2 (MIDI 2.0)
-      0x00, 0x06, // 6 tracks
+      0x00, 0x08, // 8 tracks (erweitert)
       0x03, 0xC0  // 960 ticks per quarter note
     ])
   }
@@ -47,59 +73,239 @@ class MPEMIDIGenerator {
     return Buffer.from(data)
   }
 
-  createMPETracks(songData) {
+  createExpressiveMPETracks(songData) {
     const tracks = []
     
-    // Lead Track
-    tracks.push(this.createMPETrack(this.mpeChannels.lead, 'Lead', songData))
-    // Bass Track  
-    tracks.push(this.createMPETrack(this.mpeChannels.bass, 'Bass', songData))
-    // Pad Track
-    tracks.push(this.createMPETrack(this.mpeChannels.pad, 'Pad', songData))
+    // Lead Track mit MPE Expression
+    tracks.push(this.createExpressiveMPETrack(this.mpeChannels.lead, 'Lead', songData, 'lead'))
+    // Bass Track mit Slide und Pressure
+    tracks.push(this.createExpressiveMPETrack(this.mpeChannels.bass, 'Bass', songData, 'bass'))
+    // Pad Track mit Timbre und Vibrato
+    tracks.push(this.createExpressiveMPETrack(this.mpeChannels.pad, 'Pad', songData, 'pad'))
+    // Arp Track mit Glide und Modulation
+    tracks.push(this.createExpressiveMPETrack(this.mpeChannels.arp, 'Arp', songData, 'arp'))
+    // FX Track mit Expression und Volume
+    tracks.push(this.createExpressiveMPETrack(this.mpeChannels.fx, 'FX', songData, 'fx'))
+    // Drum Track (Standard MIDI)
+    tracks.push(this.createDrumTrack(this.mpeChannels.drum, 'Drums', songData))
     
     return tracks
   }
 
-  createMPETrack(channel, name, songData) {
+  createExpressiveMPETrack(channel, name, songData, trackType) {
     const notes = this.getScaleNotes(songData.key, songData.scale)
     const events = []
     let time = 0
     
-    songData.structure.forEach((section, i) => {
+    // Track Name und MPE Setup
+    events.push(...this.createTrackName(name))
+    events.push(...this.createMPESetup(channel))
+    
+    songData.structure.forEach((section, sectionIndex) => {
       const sectionLength = this.getSectionLength(section, songData.style)
+      const notesPerSection = this.getNotesPerSection(trackType, section)
       
-      for (let j = 0; j < 4; j++) {
-        const note = notes[j % notes.length]
-        const noteNumber = this.noteToMIDI(note, 4)
+      for (let noteIndex = 0; noteIndex < notesPerSection; noteIndex++) {
+        const note = notes[noteIndex % notes.length]
+        const octave = this.getOctaveForTrack(trackType, sectionIndex)
+        const noteNumber = this.noteToMIDI(note, octave)
         
-        // MPE Note On mit Expression
-        events.push(...this.createMPENoteEvent(time, 0x90, noteNumber, 80, {
-          pressure: 64 + Math.sin(i * 0.5) * 20,
-          timbre: 64 + Math.cos(i * 0.3) * 30
-        }))
-        time += 240
+        // Note On mit MPE Expression
+        const mpeData = this.generateMPEExpression(trackType, sectionIndex, noteIndex, songData)
+        events.push(...this.createExpressiveNoteOn(time, channel, noteNumber, mpeData))
+        
+        const noteDuration = this.getNoteDuration(trackType, section)
+        time += noteDuration
         
         // Note Off
-        events.push(...this.createMIDIEvent(time, 0x80, noteNumber, 0))
-        time += 240
+        events.push(...this.createMIDIEvent(time, 0x80 | channel, noteNumber, 0))
+        time += 60 // Kurze Pause
       }
     })
     
     return this.createTrackBuffer(events, channel, name)
   }
 
-  createMPENoteEvent(time, status, note, velocity, mpeData) {
+  createExpressiveNoteOn(time, channel, note, mpeData) {
     const events = []
-    events.push(...this.createMIDIEvent(time, status, note, velocity))
     
+    // Note On
+    events.push(...this.createMIDIEvent(time, 0x90 | channel, note, mpeData.velocity))
+    
+    // MPE Expression Events (mit kleinen Delays für Realismus)
     if (mpeData.pressure) {
-      events.push(...this.createMPEEvent(0, 0xD0, 1, mpeData.pressure))
+      events.push(...this.createMPEEvent(time + 10, 0xA0 | channel, note, mpeData.pressure))
     }
     if (mpeData.timbre) {
-      events.push(...this.createMPEEvent(0, 0xE0, 1, mpeData.timbre))
+      events.push(...this.createMPEEvent(time + 20, 0xE0 | channel, 0, mpeData.timbre))
+    }
+    if (mpeData.slide) {
+      events.push(...this.createMPEEvent(time + 30, 0xE0 | channel, 1, mpeData.slide))
+    }
+    if (mpeData.vibrato) {
+      events.push(...this.createMPEEvent(time + 40, 0xE0 | channel, 2, mpeData.vibrato))
+    }
+    if (mpeData.expression) {
+      events.push(...this.createMPEEvent(time + 50, 0xB0 | channel, 0x0B, mpeData.expression))
+    }
+    if (mpeData.modulation) {
+      events.push(...this.createMPEEvent(time + 60, 0xB0 | channel, 0x01, mpeData.modulation))
     }
     
     return events
+  }
+
+  generateMPEExpression(trackType, sectionIndex, noteIndex, songData) {
+    const baseVelocity = 80
+    const expression = {
+      velocity: baseVelocity,
+      pressure: 64,
+      timbre: 64,
+      slide: 64,
+      vibrato: 64,
+      expression: 64,
+      modulation: 64
+    }
+    
+    switch (trackType) {
+      case 'lead':
+        expression.velocity = 90 + Math.sin(sectionIndex * 0.5) * 10
+        expression.pressure = 70 + Math.sin(noteIndex * 0.3) * 20
+        expression.vibrato = 60 + Math.cos(noteIndex * 0.4) * 30
+        expression.expression = 80 + Math.sin(sectionIndex * 0.7) * 15
+        break
+        
+      case 'bass':
+        expression.velocity = 85 + Math.cos(sectionIndex * 0.3) * 15
+        expression.slide = 50 + Math.sin(noteIndex * 0.5) * 40
+        expression.pressure = 80 + Math.cos(noteIndex * 0.2) * 15
+        break
+        
+      case 'pad':
+        expression.velocity = 60 + Math.sin(sectionIndex * 0.4) * 10
+        expression.timbre = 40 + Math.cos(noteIndex * 0.6) * 50
+        expression.expression = 70 + Math.sin(sectionIndex * 0.8) * 20
+        break
+        
+      case 'arp':
+        expression.velocity = 75 + Math.sin(noteIndex * 0.7) * 20
+        expression.modulation = 60 + Math.cos(noteIndex * 0.4) * 35
+        expression.slide = 30 + Math.sin(noteIndex * 0.3) * 40
+        break
+        
+      case 'fx':
+        expression.velocity = 70 + Math.cos(noteIndex * 0.5) * 25
+        expression.timbre = 20 + Math.sin(noteIndex * 0.8) * 60
+        expression.expression = 50 + Math.cos(noteIndex * 0.6) * 40
+        break
+    }
+    
+    return expression
+  }
+
+  createMPESetup(channel) {
+    const events = []
+    
+    // MPE Zone Setup (falls unterstützt)
+    events.push(...this.createMIDIEvent(0, 0xB0 | channel, 0x79, 0)) // Reset All Controllers
+    events.push(...this.createMIDIEvent(0, 0xB0 | channel, 0x7A, 0)) // Local Control Off
+    events.push(...this.createMIDIEvent(0, 0xB0 | channel, 0x7B, 0)) // All Notes Off
+    
+    return events
+  }
+
+  createTrackName(name) {
+    const nameBytes = Buffer.from(name, 'utf8')
+    return [0x00, 0xFF, 0x03, nameBytes.length, ...Array.from(nameBytes)]
+  }
+
+  createDrumTrack(channel, name, songData) {
+    const events = []
+    let time = 0
+    
+    // Track Name
+    events.push(...this.createTrackName(name))
+    
+    // Drum Pattern basierend auf Style
+    const drumPattern = this.getDrumPattern(songData.style)
+    
+    songData.structure.forEach((section, sectionIndex) => {
+      const sectionLength = this.getSectionLength(section, songData.style)
+      const beatsPerSection = sectionLength * 4 // 4/4 Time
+      
+      for (let beat = 0; beat < beatsPerSection; beat++) {
+        drumPattern.forEach(drumHit => {
+          if (drumHit.beat === beat % 4) {
+            events.push(...this.createMIDIEvent(time, 0x90 | channel, drumHit.note, drumHit.velocity))
+            time += 60
+            events.push(...this.createMIDIEvent(time, 0x80 | channel, drumHit.note, 0))
+          }
+        })
+        time += 240 // Quarter note
+      }
+    })
+    
+    return this.createTrackBuffer(events, channel, name)
+  }
+
+  getDrumPattern(style) {
+    const patterns = {
+      techno: [
+        { note: 36, velocity: 100, beat: 0 }, // Kick
+        { note: 38, velocity: 80, beat: 1 },  // Snare
+        { note: 42, velocity: 60, beat: 2 },  // Closed Hi-Hat
+        { note: 42, velocity: 60, beat: 3 }   // Closed Hi-Hat
+      ],
+      house: [
+        { note: 36, velocity: 90, beat: 0 },  // Kick
+        { note: 38, velocity: 85, beat: 2 },  // Snare
+        { note: 42, velocity: 70, beat: 1 },  // Hi-Hat
+        { note: 42, velocity: 70, beat: 3 }   // Hi-Hat
+      ],
+      ambient: [
+        { note: 36, velocity: 50, beat: 0 },  // Soft Kick
+        { note: 42, velocity: 40, beat: 2 },  // Soft Hi-Hat
+        { note: 49, velocity: 60, beat: 1 }   // Crash
+      ]
+    }
+    
+    return patterns[style] || patterns.techno
+  }
+
+  getNotesPerSection(trackType, section) {
+    const patterns = {
+      lead: 8,
+      bass: 4,
+      pad: 2,
+      arp: 16,
+      fx: 6
+    }
+    
+    return patterns[trackType] || 4
+  }
+
+  getOctaveForTrack(trackType, sectionIndex) {
+    const octaves = {
+      lead: 5,
+      bass: 3,
+      pad: 4,
+      arp: 6,
+      fx: 5
+    }
+    
+    return octaves[trackType] || 4
+  }
+
+  getNoteDuration(trackType, section) {
+    const durations = {
+      lead: 480,   // Half note
+      bass: 960,   // Whole note
+      pad: 1920,   // 2 whole notes
+      arp: 240,    // Quarter note
+      fx: 720      // Dotted half note
+    }
+    
+    return durations[trackType] || 480
   }
 
   createMIDIEvent(time, status, data1, data2) {
@@ -129,8 +335,14 @@ class MPEMIDIGenerator {
     data.push(0x00, 0xFF, 0x03, name.length)
     data.push(...Buffer.from(name, 'utf8'))
     
-    // Events
-    events.forEach(event => data.push(...event))
+    // Events - nur Arrays verarbeiten
+    events.forEach(event => {
+      if (Array.isArray(event)) {
+        data.push(...event)
+      } else {
+        console.warn('⚠️ Nicht-Array Event übersprungen:', event)
+      }
+    })
     
     // End of Track
     data.push(0x00, 0xFF, 0x2F, 0x00)

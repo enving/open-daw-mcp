@@ -158,6 +158,60 @@ app.post('/api/openwebui/functions', async (req, res) => {
   }
 })
 
+// Chat Endpoint für OpenWebUI
+app.post('/api/openwebui/chat', async (req, res) => {
+  try {
+    const { message, user, context } = req.body
+    
+    if (!message) {
+      return res.status(400).json({ error: 'message ist erforderlich' })
+    }
+    
+    console.log('🎵 OpenWebUI Chat Anfrage:', { message, user })
+    
+    // Verwende die natürliche Sprachverarbeitung der Bridge
+    const result = await bridge.handleFunctionCall(message, context || {})
+    
+    // Formatiere die Antwort für OpenWebUI Chat
+    let responseText = 'Ich habe deine Anfrage verarbeitet!'
+    let audioUrl = null
+    let midiUrl = null
+    
+    if (result.song) {
+      responseText = `🎵 **${result.song.title}** wurde erstellt!\n\n`
+      responseText += `**Stil:** ${result.song.style}\n`
+      responseText += `**Tempo:** ${result.song.tempo} BPM\n`
+      responseText += `**Tonart:** ${result.song.key}\n\n`
+      responseText += `**Struktur:** ${result.song.structure.join(' → ')}\n\n`
+      responseText += `**Beschreibung:** ${result.song.description}\n\n`
+      
+      if (result.files && result.files.audio) {
+        audioUrl = `http://localhost:3001/api/audio/${result.files.audio}`
+        responseText += `🎧 [Audio anhören](${audioUrl})\n\n`
+      }
+      
+      if (result.files && result.files.midi) {
+        midiUrl = `http://localhost:3001/api/midi/${result.files.midi}`
+        responseText += `🎼 [MIDI-Datei herunterladen](${midiUrl})\n\n`
+      }
+    }
+    
+    res.json({
+      success: true,
+      response: responseText,
+      audioUrl: audioUrl,
+      midiUrl: midiUrl,
+      result: result
+    })
+  } catch (error) {
+    console.error('❌ Fehler bei Chat-Anfrage:', error)
+    res.status(500).json({
+      success: false,
+      error: error.message
+    })
+  }
+})
+
 // Natürliche Sprachverarbeitung Endpoint
 app.post('/api/openwebui/natural-language', async (req, res) => {
   try {
