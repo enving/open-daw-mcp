@@ -1,59 +1,61 @@
 {
   "name": "open-daw-mcp",
-  "version": "0.1.0",
-  "description": "Ein MCP-Server für die Steuerung von Ardour DAW über Sprachmodelle",
+  "version": "2.0.0",
+  "description": "Model Context Protocol Server für sprachgesteuerte Songerstellung mit Carla + Python + MPE Integration",
+  "main": "src/server/index.js",
   "type": "module",
-  "main": "dist/server/index.js",
   "scripts": {
-    "dev": "tsx watch src/server/index.ts",
-    "build": "tsc",
-    "start": "node dist/server/index.js",
-    "lint": "eslint . --ext ts --report-unused-disable-directives --max-warnings 0",
-    "lint:fix": "eslint . --ext ts --fix",
-    "test": "vitest",
-    "test:ui": "vitest --ui"
-  },
-  "dependencies": {
-    "@modelcontextprotocol/sdk": "^0.4.0",
-    "commander": "^11.0.0",
-    "cors": "^2.8.5",
-    "dotenv": "^16.6.1",
-    "express": "^5.1.0",
-    "node-fetch": "^3.3.2",
-    "node-osc": "^8.0.18",
-    "osc": "^2.4.2",
-    "tone": "^15.1.22",
-    "web-audio-api": "^0.2.2"
-  },
-  "devDependencies": {
-    "@types/node": "^18.15.0",
-    "@typescript-eslint/eslint-plugin": "^5.54.1",
-    "@typescript-eslint/parser": "^5.54.1",
-    "eslint": "^8.34.0",
-    "tsx": "^3.12.0",
-    "typescript": "^4.9.3",
-    "vitest": "^0.29.3"
+    "start": "node src/server/index.js",
+    "start:http": "node start-http-server.js",
+    "test": "node tests/mvp/test-carla-mpe-mvp.js",
+    "test:pipeline": "node tests/mvp/test-llm-mpe-pipeline.js",
+    "test:ionos": "node test-ionos-mcp-integration.js",
+    "test:carla": "node test-carla-mpe-python.js",
+    "create:mpe": "node create-mpe-scripts.js",
+    "setup:vm": "bash setup-vm-config.sh",
+    "start:vm": "bash start-vm-system.sh",
+    "start:ardour": "bash start-ardour-vm.sh",
+    "setup:cloudflare": "bash setup-cloudflare-tunnel.sh",
+    "setup:openwebui": "bash install-openwebui-vm.sh",
+    "copy:token": "bash copy-ionos-token.sh"
   },
   "keywords": [
-    "daw",
-    "ardour",
-    "audio",
-    "music",
     "mcp",
-    "model-context-protocol",
-    "osc",
-    "nodejs",
-    "typescript",
-    "ionos"
+    "carla",
+    "mpe",
+    "audio",
+    "llm",
+    "ionos",
+    "music",
+    "synthesis",
+    "openwebui"
   ],
-  "author": "enving",
+  "author": "Open DAW MCP Team",
   "license": "MIT",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^0.4.0",
+    "express": "^4.18.2",
+    "cors": "^2.8.5",
+    "multer": "^1.4.5-lts.1",
+    "node-fetch": "^3.3.2",
+    "ws": "^8.14.2",
+    "tone": "^14.7.77",
+    "osc": "^2.4.1",
+    "midi": "^0.12.0",
+    "fluent-ffmpeg": "^2.1.2"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
   "repository": {
     "type": "git",
-    "url": "https://github.com/enving/open-daw-mcp.git"
+    "url": "https://github.com/your-username/open-daw-mcp.git"
   },
   "bugs": {
-    "url": "https://github.com/enving/open-daw-mcp/issues"
+    "url": "https://github.com/your-username/open-daw-mcp/issues"
   },
-  "homepage": "https://github.com/enving/open-daw-mcp#readme"
+  "homepage": "https://github.com/your-username/open-daw-mcp#readme"
 }

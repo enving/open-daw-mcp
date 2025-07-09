@@ -1,0 +1,24 @@
+
+# Carla Project für echte MIDI-zu-Audio Konvertierung
+# MIDI Input -> LV2 Synth -> Audio Output
+
+[Project]
+Name=Carla Real MIDI Test
+Version=1.0
+Engine=JACK
+
+[MIDI Input]
+Port=1
+Channel=1
+Enabled=true
+
+[LV2 Plugin]
+URI=http://lv2plug.in/plugins/eg-amp
+Name=Simple Amp
+Enabled=true
+Port=2
+
+[Audio Output]
+Port=1
+Enabled=true
+
