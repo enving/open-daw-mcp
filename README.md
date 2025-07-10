@@ -1,282 +1,277 @@
-# Open DAW MCP Server
+# Open DAW MCP - Headless Digital Audio Workstation
 
-Ein **Model Context Protocol (MCP) Server** für sprachgesteuerte Songerstellung mit **Carla + Python + MPE Integration**
+Eine sprachgesteuerte, headless Digital Audio Workstation für automatisierte Musikproduktion mit LLM-Integration.
 
-## 🎯 Zielbild
+## 🎯 Ziel
 
-**"Erstelle mir einen Tame Impala ähnlichen Song"** → **LLM → MPE-Daten → Carla Plugins → Audio-Export**
+Eine minimale, effiziente Headless-DAW zu entwickeln, die:
+- **Sprachgesteuert** ist über LLM-Integration (IONOS API)
+- **Headless** läuft ohne GUI auf Servern/VMs
+- **Plugin-Hosting** für VST2/3, LV2, LADSPA unterstützt
+- **MIDI-Sequencing** und Audio-Verarbeitung bietet
+- **Automatisierte Workflows** für Song-Erstellung ermöglicht
 
-## 🏗️ Neue Architektur: Carla + Python + MPE
+## 🏗️ Neue Architektur: Eigene Headless-DAW
 
-### **🎛️ Komponenten:**
-
-1. **LLM (IONOS API)** - Sprachgesteuerte Song-Beschreibungen
-2. **MPE-Generator (Python)** - LLM → MPE-Daten Konvertierung  
-3. **Carla Plugin-Host** - Headless Audio-Processing
-4. **Python MPE-Controller** - Steuert Carla Plugins
-5. **Audio-Aufnahme** - Export der generierten Sounds
+### **🎛️ Core Components:**
+1. **Headless DAW Engine** (Python) - Projekt- und Track-Management
+2. **Carla Plugin-Host** - Headless Plugin-Hosting
+3. **Audio Engine** - Real-time Audio Processing
+4. **MIDI Engine** - MIDI-Sequencing und MPE-Support
+5. **LLM Bridge** - IONOS API Integration
+6. **MCP Server** - Model Context Protocol für KI-Integration
+7. **OpenWebUI** - Chat-Interface für Song-Erstellung
 
 ### **🔄 Workflow:**
 ```
-LLM (IONOS) → Song-Beschreibung
-     ↓
-MPE-Generator → Expressive MIDI-Daten
-     ↓
-Python-Controller → Carla LV2 Plugins
-     ↓
-Audio-Aufnahme → WAV-Export
-     ↓
-OpenWebUI → Chat-Integration
+OpenWebUI Chat → Sprachbeschreibung
+      ↓
+LLM Bridge → IONOS API
+      ↓
+MIDI Engine → Expressive MIDI-Daten
+      ↓
+Carla Plugin-Host → Audio-Processing
+      ↓
+Audio Engine → Real-time Audio
+      ↓
+Export → WAV/MIDI-Dateien
 ```
 
-## 🎵 Features
-
-### ✅ Implementiert
-- **IONOS LLM Integration** - Sprachgesteuerte Songerstellung
-- **Carla Plugin-Host** - Headless Audio-Processing
-- **Python MPE-Controller** - Expressive MIDI-Steuerung
-- **Multi-Style Support**: Techno, House, Ambient, Trance, Drum & Bass, Psychedelic Rock
-- **Künstler-Referenz-Erkennung**: Tame Impala, Daft Punk, Aphex Twin, etc.
-- **JSON-RPC Kommunikation** ohne MCP SDK
-- **Robuste Fehlerbehandlung** mit Fallback-Systemen
-- **VM-Integration** - Alles zentral in der VM (87.106.81.49)
-- **OpenWebUI Integration** - Chat-Interface für Song-Erstellung
-
-### 🎛️ Carla + MPE Features
-- **Headless Carla** - Keine GUI-Probleme
-- **LV2 Plugin-Support** - FluidSynth, ReasonableSynth, etc.
-- **MPE-Controller** - Expressive MIDI-Steuerung
-- **Python-API** - Programmierbare Automatisierung
-- **Audio-Aufnahme** - ALSA, JACK, PulseAudio
-
-### 🤖 LLM MPE Generator Features
-- **Stil-spezifische MPE-Daten** - Tame Impala, Ambient, Techno
-- **Expressive Parameter** - Pressure, Timbre, Pitch Bend
-- **Multi-Channel Support** - Verschiedene Instrument-Spuren
-- **Real-time Generation** - Sofortige Audio-Erstellung
-
-## 🚀 Installation
-
-```bash
-# Repository klonen
-git clone https://github.com/your-username/open-daw-mcp.git
-cd open-daw-mcp
-
-# Dependencies installieren
-npm install
-
-# Umgebungsvariablen konfigurieren
-cp env.example .env
-# IONOS_API_TOKEN und IONOS_API_URL in .env setzen
-```
-
-## 🖥️ VM Setup (87.106.81.49)
-
-### **Audio-System:**
-- ✅ **Carla 2.4.2** - Plugin-Host
-- ✅ **JACK Audio Server** - Audio-Routing
-- ✅ **ALSA/PulseAudio** - Audio-Subsystem
-- ✅ **LV2 Plugins** - FluidSynth, ReasonableSynth
-- ✅ **Python 3.10** - MPE-Controller
-
-### **Remote-Zugriff:**
-```bash
-# SSH mit X11-Forwarding
-ssh -X root@87.106.81.49
-
-# Grafische Anwendungen
-carla &
-gnome-terminal &
-```
-
-## 🔧 Konfiguration
-
-### IONOS AI Model Hub Setup
-1. **API-Token generieren** im IONOS Data Center Designer (DCD)
-2. **Modell auswählen** (z.B. `meta-llama/Meta-Llama-3.1-8B-Instruct`)
-3. **Umgebungsvariablen setzen**:
-   ```env
-   IONOS_API_TOKEN=dein_token_hier
-   IONOS_API_URL=https://openai.inference.de-txl.ionos.com/v1
-   ```
-
-## 🎼 Verwendung
-
-### HTTP Server starten (Empfohlen)
-```bash
-# Hauptserver mit OpenWebUI Integration starten
-node start-http-server.js
-
-# Server läuft auf http://localhost:3001
-# Audio-Dateien: http://localhost:3001/api/audio/
-# Function Endpoint: http://localhost:3001/api/openwebui/functions
-```
-
-### Carla + MPE Integration
-```bash
-# MPE-Skripte erstellen
-node create-mpe-scripts.js
-
-# Carla mit MPE-Controller testen
-node test-carla-mpe-python.js
-
-# LLM-MPE-Generator testen
-ssh -i ~/.ssh/vm_key root@87.106.81.49 "cd /opt/open-daw-mcp/output && python3 llm_mpe_generator.py"
-```
-
-### Tests ausführen
-```bash
-# IONOS LLM Integration testen
-node test-ionos-mcp-integration.js
-
-# Carla MPE Integration testen
-node test-carla-mpe-python.js
-
-# Einzelne Komponenten testen
-node test-tone-audio-engine.js
-node ionos-llm-test.js
-```
-
-## 📁 Repository-Struktur
+## 📁 Projektstruktur
 
 ```
 open-daw-mcp/
 ├── src/
-│   ├── audio/           # Audio-Engines (Tone.js, Carla)
-│   ├── integration/     # MCP Bridges
-│   ├── server/          # HTTP/MCP Server
-│   └── web/            # OpenWebUI Integration
-├── output/              # Generierte Audio/MIDI-Dateien
-├── external/            # Git Submodules (Ardour MCP)
-├── docs/               # Dokumentation
-└── tests/              # Test-Skripte
+│   ├── daw/              # Headless DAW Core ✅
+│   ├── plugins/          # Carla Plugin Host ✅
+│   ├── audio/            # Audio Engine ✅
+│   ├── midi/             # MIDI Engine ✅
+│   ├── llm/              # IONOS API Bridge ✅
+│   └── mcp/              # MCP Server ✅
+├── openwebui/            # OpenWebUI Integration 🔄
+├── tests/                # Test Suite 📋
+├── docs/                 # Dokumentation 📋
+├── output/               # Generierte Audio/MIDI 📋
+├── requirements.txt      # Python Dependencies ✅
+└── Makefile             # Build System ✅
 ```
 
-## 🎯 Nächste Entwicklungsschritte
+## ✅ Aktueller Status
 
-### **Phase 1: MVP-Komponenten** ✅
-- [x] **Carla Installation** - Plugin-Host auf VM
-- [x] **Python MPE-Controller** - Grundlegende MPE-Steuerung
-- [x] **LLM-MPE-Generator** - Stil-spezifische MPE-Daten
-- [x] **Audio-Aufnahme** - ALSA/JACK/PulseAudio Tests
+### **Phase 1: Core DAW Engine** ✅ ABGESCHLOSSEN
+- ✅ **Headless DAW Core** - Projekt- und Track-Management
+- ✅ **Carla Plugin-Host Integration** - VST2/3, LV2, LADSPA Support
+- ✅ **Audio Engine** - Real-time Audio Processing mit JACK
+- ✅ **MIDI Engine** - MIDI-Sequencing und MPE-Support
+- ✅ **LLM Bridge** - IONOS API Integration
+- ✅ **MCP Server** - Model Context Protocol Implementation
+- ✅ **Build System** - Makefile und Dependencies
 
-### **Phase 2: Integration** 🔄
-- [ ] **Carla + MPE-Controller** - Vollständige Integration
-- [ ] **LLM → MPE Pipeline** - End-to-End Test
-- [ ] **Audio-Export** - WAV-Dateien aus Carla
-- [ ] **OpenWebUI Integration** - Chat-Interface
+### **Phase 2: Integration & Testing** 🔄 IN ARBEIT
+- 🔄 **Component Testing** - Einzelne Module testen
+- 🔄 **Carla Headless Setup** - Plugin-Host auf VM
+- 🔄 **JACK Audio Server** - Audio-System konfigurieren
+- 🔄 **MIDI Clock Sync** - Timing-Synchronisation
+- 🔄 **Plugin Discovery** - Automatische Plugin-Erkennung
 
-### **Phase 3: Erweiterte Features** 📋
-- [ ] **Multi-Track MPE** - Verschiedene Instrument-Spuren
-- [ ] **LV2 Plugin-Management** - Automatische Plugin-Auswahl
-- [ ] **Real-time Audio-Streaming** - Live-Audio im Chat
-- [ ] **Stil-spezifische Presets** - Tame Impala, Ambient, etc.
+### **Phase 3: OpenWebUI Integration** 📋 NÄCHSTE SCHRITTE
+- 📋 **OpenWebUI Setup** - Chat-Interface installieren
+- 📋 **MCP Tool Registration** - Tools in OpenWebUI registrieren
+- 📋 **Function Calling** - Sprach-zu-Song Konvertierung
+- 📋 **Real-time Feedback** - Live-Song-Generierung
+- 📋 **Audio Preview** - Sofortige Audio-Vorschau
 
-### **Phase 4: Produktionsreife** 🚀
-- [ ] **Fehlerbehandlung** - Robuste Error-Handling
-- [ ] **Performance-Optimierung** - Schnelle Audio-Generierung
-- [ ] **Dokumentation** - Vollständige API-Docs
-- [ ] **Deployment** - Automatisierte VM-Setup
+### **Phase 4: Production Features** 📋 ZUKÜNFTIG
+- 📋 **Multi-Track Recording** - Verschiedene Instrument-Spuren
+- 📋 **Plugin Parameter Automation** - Automatische Plugin-Steuerung
+- 📋 **Export Functions** - WAV, MP3, MIDI Export
+- 📋 **Cloud Deployment** - VM/Server Deployment
+- 📋 **Performance Optimization** - Real-time Performance
 
-## 🧪 MVP-Tests
+## 🚀 Nächste Schritte
 
-### **1. Carla MPE-Controller Test**
+### **SOFORT (Diese Woche):**
+1. **VM Setup vervollständigen**
+   ```bash
+   # Auf VM (87.106.81.49)
+   cd /opt/open-daw-mcp
+   make install
+   make build
+   ```
+
+2. **Component Testing**
+   ```bash
+   make test-daw      # DAW Core testen
+   make test-carla    # Carla Host testen
+   make test-audio    # Audio Engine testen
+   make test-midi     # MIDI Engine testen
+   make test-llm      # LLM Bridge testen
+   make test-mcp      # MCP Server testen
+   ```
+
+3. **Carla Headless Setup**
+   ```bash
+   # JACK Audio Server starten
+   jackd -d alsa -r 44100 -p 512 -n 2 &
+   
+   # Carla im Headless-Modus
+   carla --no-gui --engine=jack --osc-port=22752
+   ```
+
+### **NÄCHSTE WOCHE:**
+1. **OpenWebUI Integration**
+   - OpenWebUI auf VM installieren
+   - MCP Tools registrieren
+   - Function Calling implementieren
+
+2. **End-to-End Testing**
+   - Vollständige Song-Generierung testen
+   - Audio-Export testen
+   - Performance optimieren
+
+3. **Documentation**
+   - API-Dokumentation erstellen
+   - Deployment-Guide schreiben
+   - Troubleshooting-Guide
+
+## 🛠️ Setup
+
+### **Lokale Entwicklung:**
 ```bash
-# Erstelle MPE-Skripte
-node create-mpe-scripts.js
+# Repository klonen
+git clone https://github.com/your-repo/open-daw-mcp.git
+cd open-daw-mcp
 
-# Teste MPE-Controller
-ssh -i ~/.ssh/vm_key root@87.106.81.49 "cd /opt/open-daw-mcp/output && python3 mpe_controller.py"
+# Setup ausführen
+make setup
+
+# Tests ausführen
+make test
+
+# System starten
+make run
 ```
 
-### **2. LLM-MPE-Generator Test**
+### **VM Deployment:**
 ```bash
-# Teste LLM-MPE-Generator
-ssh -i ~/.ssh/vm_key root@87.106.81.49 "cd /opt/open-daw-mcp/output && python3 llm_mpe_generator.py"
+# Auf VM deployen
+make deploy-vm
+
+# Auf VM installieren
+make install-vm
 ```
 
-### **3. Carla + Python Integration Test**
+## 🎵 Verfügbare Features
+
+### **✅ Implementiert:**
+- **Headless DAW Core** - Vollständige DAW-Architektur
+- **Carla Plugin-Host** - VST2/3, LV2, LADSPA Support
+- **Real-time Audio** - JACK Audio Processing
+- **MIDI Sequencing** - Multi-Track MIDI Support
+- **MPE Support** - Expressive MIDI Controller
+- **LLM Integration** - IONOS API Bridge
+- **MCP Server** - Model Context Protocol
+- **Build System** - Makefile und Dependencies
+
+### **🔄 In Entwicklung:**
+- **Component Integration** - Module zusammenführen
+- **Plugin Discovery** - Automatische Plugin-Erkennung
+- **Audio Export** - WAV/MIDI Export-Funktionen
+
+### **📋 Geplant:**
+- **OpenWebUI Integration** - Chat-Interface
+- **Real-time Song Generation** - Live-Audio-Generierung
+- **Multi-Track Recording** - Verschiedene Instrument-Spuren
+- **Cloud Deployment** - Automatisierte VM-Setup
+
+## 🧪 Testing
+
+### **Component Tests:**
 ```bash
-# Vollständige Carla + MPE Integration
-node test-carla-mpe-python.js
+make test-daw      # DAW Core
+make test-carla    # Carla Host
+make test-audio    # Audio Engine
+make test-midi     # MIDI Engine
+make test-llm      # LLM Bridge
+make test-mcp      # MCP Server
 ```
 
-### **4. OpenWebUI Chat Test**
+### **Integration Tests:**
 ```bash
-# Starte HTTP Server
-node start-http-server.js
+# Vollständige Song-Generierung
+python3 -c "
+from src.mcp.server import get_mcp_server
+import asyncio
 
-# Teste Chat-Integration
-curl -X POST http://localhost:3001/api/openwebui/chat \
-  -H "Content-Type: application/json" \
-  -d '{"message": "Erstelle einen psychedelischen Song im Stil von Tame Impala", "user": "user1"}'
-```
+async def test_song_creation():
+    server = get_mcp_server()
+    result = await server.execute_tool('create_song_from_description', {
+        'description': 'Erstelle einen psychedelischen Song im Stil von Tame Impala',
+        'style': 'tame_impala',
+        'duration': 30.0
+    })
+    print(f'Song erstellt: {result}')
 
-## 🎛️ Verfügbare Tools
-
-1. **`create_song_from_description`** - Erstellt Songs aus natürlichen Sprachbeschreibungen
-2. **`list_available_tools`** - Listet alle verfügbaren Tools auf
-3. **`list_music_styles`** - Zeigt unterstützte Musikstile
-4. **`list_songs`** - Listet alle erstellten Songs auf
-5. **`get_song`** - Holt Details eines spezifischen Songs
-6. **`delete_song`** - Löscht einen Song und seine Dateien
-
-## 🔧 Troubleshooting
-
-### **Carla Probleme:**
-```bash
-# JACK Audio Server starten
-jackd -d alsa -r 44100 -p 512 -n 2 &
-
-# Carla im Headless-Modus
-carla --no-gui --engine=jack
-```
-
-### **MPE-Controller Probleme:**
-```bash
-# Python-Dependencies prüfen
-python3 -c "import liblo; print('liblo OK')"
-python3 -c "from pythonosc import udp_client; print('python-osc OK')"
-```
-
-### **Audio-Aufnahme Probleme:**
-```bash
-# ALSA Audio-System prüfen
-aplay -l
-arecord -f S16_LE -r 44100 -c 2 test.wav
+asyncio.run(test_song_creation())
+"
 ```
 
 ## 📝 Changelog
 
-### **v2.0.0 - Carla + Python + MPE Integration**
-- ✅ **Neue Architektur** - Carla + Python + MPE statt Ardour
-- ✅ **Headless-Design** - Keine GUI-Probleme mehr
-- ✅ **LLM-optimiert** - Direkte MPE-Daten-Generierung
-- ✅ **Modular** - Einzelne Komponenten testbar
-- ✅ **Effizient** - Weniger Overhead als DAW
+### **v2.0.0 - Neue Headless-DAW Architektur** ✅
+- ✅ **Komplette Neuentwicklung** - Eigene Headless-DAW statt Ardour
+- ✅ **Modulare Architektur** - Saubere Komponenten-Trennung
+- ✅ **Carla Integration** - Plugin-Host für VST2/3, LV2, LADSPA
+- ✅ **Real-time Audio** - JACK Audio Processing
+- ✅ **MIDI Engine** - Multi-Track MIDI mit MPE-Support
+- ✅ **LLM Bridge** - IONOS API Integration
+- ✅ **MCP Server** - Model Context Protocol Implementation
+- ✅ **Build System** - Makefile und Dependencies
 
-### **v1.0.0 - Ardour DAW Integration**
-- ✅ **Ardour MCP Server** - Git Submodule Integration
-- ✅ **OSC Bridge** - Ardour-Kommunikation
-- ✅ **VM Setup** - Ubuntu mit Audio-System
-- ✅ **OpenWebUI Integration** - Chat-Interface
+### **v1.0.0 - Ardour DAW Integration** (Veraltet)
+- ❌ **Ardour MCP Server** - Git Submodule Integration
+- ❌ **OSC Bridge** - Ardour-Kommunikation
+- ❌ **GUI-Probleme** - Headless-Betrieb schwierig
 
-## 🤝 Beitragen
+## 🤝 Contributing
 
+### **Entwicklungsschritte:**
 1. **Fork** das Repository
 2. **Feature Branch** erstellen (`git checkout -b feature/amazing-feature`)
-3. **Commit** deine Änderungen (`git commit -m 'Add amazing feature'`)
-4. **Push** zum Branch (`git push origin feature/amazing-feature`)
-5. **Pull Request** erstellen
+3. **Tests schreiben** für neue Features
+4. **Code formatieren** (`make format`)
+5. **Tests ausführen** (`make test`)
+6. **Commit** deine Änderungen (`git commit -m 'Add amazing feature'`)
+7. **Push** zum Branch (`git push origin feature/amazing-feature`)
+8. **Pull Request** erstellen
 
-## 📄 Lizenz
+### **Code Standards:**
+- **Python** - PEP 8, Type Hints, Docstrings
+- **Tests** - pytest für alle neuen Features
+- **Formatting** - black für Code-Formatierung
+- **Linting** - flake8 für Code-Qualität
 
-Dieses Projekt ist unter der MIT-Lizenz lizenziert - siehe [LICENSE](LICENSE) Datei für Details.
+## 📄 License
 
-## 🙏 Danksagungen
+MIT License - siehe LICENSE Datei für Details.
 
-- **IONOS AI Model Hub** für LLM-Integration
-- **Carla Plugin-Host** für Audio-Processing
-- **OpenWebUI** für Chat-Interface
-- **Ubuntu VM** für zentrale Entwicklungsumgebung
+## 🎯 Roadmap
 
+### **Q1 2024:**
+- ✅ Core DAW Engine (ABGESCHLOSSEN)
+- 🔄 Component Integration (IN ARBEIT)
+- 📋 OpenWebUI Integration
+
+### **Q2 2024:**
+- 📋 Production Features
+- 📋 Cloud Deployment
+- 📋 Performance Optimization
+
+### **Q3 2024:**
+- 📋 Advanced Plugin Support
+- 📋 Multi-User Support
+- 📋 API Documentation
+
+---
+
+**Status:** Repository aufgeräumt, neue Architektur implementiert, nächste Schritte klar definiert! 🚀 
