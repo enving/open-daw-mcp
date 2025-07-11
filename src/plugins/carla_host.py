@@ -89,7 +89,7 @@ class CarlaHost:
         self.dispatcher.map("/carla/audio/event", self._handle_audio_event)
         self.dispatcher.map("/carla/midi/event", self._handle_midi_event)
     
-    def start_carla_server(self) -> bool:
+    async def start_carla_server(self) -> bool:
         """Startet den Carla Headless Server"""
         try:
             # Carla im Headless-Modus starten
