@@ -12,7 +12,7 @@ from dataclasses import dataclass
 from enum import Enum
 
 # Audio/MIDI Libraries
-import jack
+# import jack
 import mido
 import numpy as np
 
@@ -85,7 +85,7 @@ class HeadlessDaw:
     def _setup_jack(self):
         """JACK Audio Server Setup"""
         try:
-            self.jack_client = jack.Client("OpenDAW", no_start_server=True)
+            # self.jack_client = None("OpenDAW", no_start_server=True)
             self.jack_client.set_process_callback(self._process_callback)
             self.jack_client.activate()
             logger.info("JACK Client erfolgreich verbunden")

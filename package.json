@@ -1,5 +1,59 @@
 {
+  "name": "open-daw-mcp",
+  "version": "0.1.0",
+  "description": "Ein MCP-Server für die Steuerung von Ardour DAW über Sprachmodelle",
+  "type": "module",
+  "main": "dist/server/index.js",
+  "scripts": {
+    "dev": "tsx watch src/server/index.ts",
+    "build": "tsc",
+    "start": "node dist/server/index.js",
+    "lint": "eslint . --ext ts --report-unused-disable-directives --max-warnings 0",
+    "lint:fix": "eslint . --ext ts --fix",
+    "test": "vitest",
+    "test:ui": "vitest --ui"
+  },
   "dependencies": {
-    "node-fetch": "^3.3.2"
-  }
+    "@modelcontextprotocol/sdk": "^0.4.0",
+    "commander": "^11.0.0",
+    "cors": "^2.8.5",
+    "dotenv": "^16.6.1",
+    "express": "^5.1.0",
+    "node-fetch": "^3.3.2",
+    "node-osc": "^8.0.18",
+    "osc": "^2.4.2",
+    "tone": "^15.1.22",
+    "web-audio-api": "^0.2.2"
+  },
+  "devDependencies": {
+    "@types/node": "^18.15.0",
+    "@typescript-eslint/eslint-plugin": "^5.54.1",
+    "@typescript-eslint/parser": "^5.54.1",
+    "eslint": "^8.34.0",
+    "tsx": "^3.12.0",
+    "typescript": "^4.9.3",
+    "vitest": "^0.29.3"
+  },
+  "keywords": [
+    "daw",
+    "ardour",
+    "audio",
+    "music",
+    "mcp",
+    "model-context-protocol",
+    "osc",
+    "nodejs",
+    "typescript",
+    "ionos"
+  ],
+  "author": "enving",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/enving/open-daw-mcp.git"
+  },
+  "bugs": {
+    "url": "https://github.com/enving/open-daw-mcp/issues"
+  },
+  "homepage": "https://github.com/enving/open-daw-mcp#readme"
 }

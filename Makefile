@@ -1,140 +1,46 @@
-# Open DAW MCP - Makefile
+.PHONY: help local staging vm build clean logs
 
-.PHONY: install build test clean run help
+help: ## Zeige diese Hilfe
+	@echo "Verfügbare Befehle:"
+	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-20s\033[0m %s\n", $$1, $$2}'
 
-# Variables
-PYTHON = python3
-PIP = pip3
-DAW_CORE = src/daw/core.py
-CARLA_HOST = src/plugins/carla_host.py
-AUDIO_ENGINE = src/audio/engine.py
-MIDI_ENGINE = src/midi/engine.py
-LLM_BRIDGE = src/llm/ionos_bridge.py
-MCP_SERVER = src/mcp/server.py
+local: ## Starte lokale Entwicklungsumgebung
+	docker-compose -f docker-compose.local.yml --env-file env.local up -d
 
-# Default target
-all: install build
+local-down: ## Stoppe lokale Entwicklungsumgebung
+	docker-compose -f docker-compose.local.yml down
 
-# Install dependencies
-install:
-	@echo "Installing Python dependencies..."
-	$(PIP) install -r requirements.txt
-	@echo "Installing system dependencies..."
-	sudo apt update
-	sudo apt install -y jackd2 carla python3-pip build-essential
-	@echo "Dependencies installed successfully!"
+staging: ## Starte Staging-Umgebung
+	docker-compose -f docker-compose.staging.yml --env-file env.staging up -d
 
-# Build the DAW core
-build:
-	@echo "Building Open DAW MCP..."
-	@echo "Checking Python modules..."
-	$(PYTHON) -c "import numpy, scipy, soundfile, mido, jack; print('All modules available')"
-	@echo "Build completed successfully!"
+staging-down: ## Stoppe Staging-Umgebung
+	docker-compose -f docker-compose.staging.yml down
 
-# Run tests
-test:
-	@echo "Running tests..."
-	$(PYTHON) -m pytest tests/ -v
+vm: ## Starte VM-Produktionsumgebung mit Cloudflare Tunnel
+	docker-compose -f docker-compose.vm.yml --env-file env.vm up -d
 
-# Run individual components
-test-daw:
-	@echo "Testing DAW Core..."
-	$(PYTHON) $(DAW_CORE)
+vm-down: ## Stoppe VM-Produktionsumgebung
+	docker-compose -f docker-compose.vm.yml down
 
-test-carla:
-	@echo "Testing Carla Host..."
-	$(PYTHON) $(CARLA_HOST)
+build: ## Baue alle Docker-Images
+	docker-compose -f docker-compose.local.yml build
+	docker-compose -f docker-compose.staging.yml build
+	docker-compose -f docker-compose.vm.yml build
 
-test-audio:
-	@echo "Testing Audio Engine..."
-	$(PYTHON) $(AUDIO_ENGINE)
+clean: ## Bereinige alle Container und Volumes
+	docker-compose -f docker-compose.local.yml down -v
+	docker-compose -f docker-compose.staging.yml down -v
+	docker-compose -f docker-compose.vm.yml down -v
+	docker system prune -f
 
-test-midi:
-	@echo "Testing MIDI Engine..."
-	$(PYTHON) $(MIDI_ENGINE)
+logs: ## Zeige Logs aller Services
+	docker-compose -f docker-compose.local.yml logs -f
 
-test-llm:
-	@echo "Testing LLM Bridge..."
-	$(PYTHON) $(LLM_BRIDGE)
+logs-staging: ## Zeige Staging-Logs
+	docker-compose -f docker-compose.staging.yml logs -f
 
-test-mcp:
-	@echo "Testing MCP Server..."
-	$(PYTHON) $(MCP_SERVER)
+logs-vm: ## Zeige VM-Logs
+	docker-compose -f docker-compose.vm.yml logs -f
 
-# Run the complete system
-run:
-	@echo "Starting Open DAW MCP..."
-	$(PYTHON) -m src.mcp.server
-
-# Development server
-dev:
-	@echo "Starting development server..."
-	$(PYTHON) -m src.mcp.server --dev
-
-# Clean build artifacts
-clean:
-	@echo "Cleaning build artifacts..."
-	find . -type f -name "*.pyc" -delete
-	find . -type d -name "__pycache__" -delete
-	find . -type d -name "*.egg-info" -exec rm -rf {} +
-	@echo "Clean completed!"
-
-# Install on VM
-install-vm:
-	@echo "Installing on VM..."
-	ssh -i ~/.ssh/vm_key root@87.106.81.49 "cd /opt/open-daw-mcp && make install"
-
-# Deploy to VM
-deploy-vm:
-	@echo "Deploying to VM..."
-	rsync -avz --exclude 'node_modules' --exclude '.git' --exclude 'output/*' \
-		-e "ssh -i ~/.ssh/vm_key" ./ root@87.106.81.49:/opt/open-daw-mcp/
-	ssh -i ~/.ssh/vm_key root@87.106.81.49 "cd /opt/open-daw-mcp && make build"
-
-# Setup development environment
-setup-dev:
-	@echo "Setting up development environment..."
-	$(PIP) install -r requirements.txt
-	$(PIP) install black flake8 pytest pytest-asyncio
-	@echo "Development environment ready!"
-
-# Format code
-format:
-	@echo "Formatting code..."
-	black src/ tests/
-	@echo "Code formatted!"
-
-# Lint code
-lint:
-	@echo "Linting code..."
-	flake8 src/ tests/
-	@echo "Linting completed!"
-
-# Create output directory
-setup-output:
-	@echo "Creating output directory..."
-	mkdir -p output/audio output/midi output/projects
-	@echo "Output directory created!"
-
-# Full setup
-setup: setup-output install build
-	@echo "Full setup completed!"
-
-# Help
-help:
-	@echo "Open DAW MCP - Available targets:"
-	@echo "  install      - Install dependencies"
-	@echo "  build        - Build the DAW core"
-	@echo "  test         - Run all tests"
-	@echo "  test-*       - Run specific component tests"
-	@echo "  run          - Run the complete system"
-	@echo "  dev          - Run development server"
-	@echo "  clean        - Clean build artifacts"
-	@echo "  install-vm   - Install on VM"
-	@echo "  deploy-vm    - Deploy to VM"
-	@echo "  setup-dev    - Setup development environment"
-	@echo "  format       - Format code"
-	@echo "  lint         - Lint code"
-	@echo "  setup-output - Create output directory"
-	@echo "  setup        - Full setup"
-	@echo "  help         - Show this help" 
+logs-cloudflared: ## Zeige Cloudflare Tunnel Logs
+	docker-compose -f docker-compose.vm.yml logs cloudflared -f 
