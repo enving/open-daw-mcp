@@ -1,0 +1,233 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Open DAW HTTP Server",
+    "description": "HTTP-Server für die Headless Digital Audio Workstation",
+    "version": "1.0.0"
+  },
+  "servers": [
+    {
+      "url": "http://87.106.81.49:3002",
+      "description": "DAW Server"
+    }
+  ],
+  "paths": {
+    "/": {
+      "get": {
+        "summary": "Health Check",
+        "description": "Überprüft den Status des DAW-Servers",
+        "responses": {
+          "200": {
+            "description": "Server ist bereit",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "example": "OK"
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "Open DAW HTTP Server läuft"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/generate-melody": {
+      "post": {
+        "summary": "Melodie generieren",
+        "description": "Generiert eine Melodie basierend auf den angegebenen Parametern",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "notes": {
+                    "type": "array",
+                    "items": {
+                      "type": "number"
+                    },
+                    "description": "Array von Frequenzen in Hz",
+                    "example": [261.63, 329.63, 392, 523.25]
+                  },
+                  "duration": {
+                    "type": "number",
+                    "description": "Dauer in Sekunden",
+                    "example": 4
+                  },
+                  "style": {
+                    "type": "string",
+                    "description": "Musikstil",
+                    "enum": ["classical", "jazz", "electronic", "pop"],
+                    "example": "classical"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Melodie erfolgreich generiert",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "filename": {
+                      "type": "string",
+                      "example": "melody_20241201_143022.wav"
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "Melodie erfolgreich generiert"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Fehler beim Generieren der Melodie"
+          }
+        }
+      }
+    },
+    "/generate-song": {
+      "post": {
+        "summary": "Song generieren",
+        "description": "Generiert einen kompletten Song basierend auf der Beschreibung",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "description": {
+                    "type": "string",
+                    "description": "Beschreibung des gewünschten Songs",
+                    "example": "Ein elektronischer Song mit Bass und Drums"
+                  },
+                  "duration": {
+                    "type": "number",
+                    "description": "Dauer in Sekunden",
+                    "example": 8
+                  },
+                  "style": {
+                    "type": "string",
+                    "description": "Musikstil",
+                    "enum": ["classical", "jazz", "electronic", "pop"],
+                    "example": "electronic"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Song erfolgreich generiert",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    },
+                    "filename": {
+                      "type": "string",
+                      "example": "song_20241201_143022.wav"
+                    },
+                    "message": {
+                      "type": "string",
+                      "example": "Song erfolgreich generiert"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Fehler beim Generieren des Songs"
+          }
+        }
+      }
+    },
+    "/audio-files": {
+      "get": {
+        "summary": "Audio-Dateien auflisten",
+        "description": "Listet alle verfügbaren Audio-Dateien auf",
+        "responses": {
+          "200": {
+            "description": "Liste der Audio-Dateien",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "files": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "example": ["melody_20241201_143022.wav", "song_20241201_143022.wav"]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/audio/{filename}": {
+      "get": {
+        "summary": "Audio-Datei abrufen",
+        "description": "Lädt eine spezifische Audio-Datei herunter",
+        "parameters": [
+          {
+            "name": "filename",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Name der Audio-Datei"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Audio-Datei",
+            "content": {
+              "audio/wav": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Datei nicht gefunden"
+          }
+        }
+      }
+    }
+  }
+} 

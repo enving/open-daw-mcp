@@ -11,7 +11,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
-const PORT = 3001;
+const PORT = 3002;
 
 // Middleware
 app.use(cors());
@@ -108,6 +108,19 @@ class DawHttpServer {
                     files: audioFiles,
                     count: audioFiles.length
                 });
+            });
+        });
+
+        // OpenAPI Spezifikation
+        app.get('/openapi.json', (req, res) => {
+            const openapiPath = path.join(__dirname, 'openapi.json');
+            fs.readFile(openapiPath, 'utf8', (err, data) => {
+                if (err) {
+                    res.status(500).json({ error: 'OpenAPI Spezifikation nicht gefunden' });
+                    return;
+                }
+                res.setHeader('Content-Type', 'application/json');
+                res.send(data);
             });
         });
     }
@@ -252,7 +265,7 @@ print('${outputFile}')
     }
 
     start() {
-        this.app.listen(PORT, () => {
+        this.app.listen(PORT, '0.0.0.0', () => {
             console.log(`🎵 Open DAW HTTP Server läuft auf Port ${PORT}`);
             console.log(`📡 Endpoints:`);
             console.log(`   GET  / - Health Check`);
@@ -260,6 +273,7 @@ print('${outputFile}')
             console.log(`   POST /generate-song - Song generieren`);
             console.log(`   GET  /audio-files - Audio-Dateien auflisten`);
             console.log(`   GET  /audio/:filename - Audio-Datei abrufen`);
+            console.log(`   GET  /openapi.json - OpenAPI Spezifikation`);
         });
     }
 
