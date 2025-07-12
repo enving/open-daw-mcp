@@ -1,0 +1,20 @@
+FROM node:18-alpine
+
+# Setze Arbeitsverzeichnis
+WORKDIR /app
+
+# Kopiere package.json und installiere Node.js Dependencies
+COPY package*.json ./
+RUN npm install
+
+# Kopiere Source Code
+COPY . .
+
+# Erstelle Output-Verzeichnisse
+RUN mkdir -p output/audio output/musicxml
+
+# Exponiere Port
+EXPOSE 3001
+
+# Starte den Server
+CMD ["node", "src/server/index.js"] 

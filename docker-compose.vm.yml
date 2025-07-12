@@ -1,17 +1,19 @@
 version: '3.8'
 
 services:
-  # DAW HTTP Server für VM-Produktion
+  # DAW HTTP Server für VM-Produktion (MusicXML Version)
   daw-server:
-    build: .
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
     ports:
-      - "3002:3002"
+      - "3002:3001"
     environment:
       - NODE_ENV=production
-      - PORT=3002
+      - PORT=3001
     volumes:
       - ./output:/app/output
-    command: ["node", "daw-http-server.js"]
+    command: ["node", "src/server/index.js"]
     restart: unless-stopped
 
   # OpenWebUI für VM-Produktion

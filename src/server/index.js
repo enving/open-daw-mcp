@@ -2,7 +2,7 @@ import express from 'express'
 import cors from 'cors'
 import { readFileSync, existsSync } from 'fs'
 import { join } from 'path'
-import { OpenWebUIMCPBridge } from '../integration/openwebui-mcp-bridge.js'
+import { OpenWebUIMCPBridge } from './openwebui-bridge.js'
 
 const app = express()
 const PORT = process.env.PORT || 3001

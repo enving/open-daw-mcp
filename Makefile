@@ -1,46 +1,54 @@
-.PHONY: help local staging vm build clean logs
+# Open DAW MCP Makefile
+
+.PHONY: help dev build deploy logs clean
 
 help: ## Zeige diese Hilfe
-	@echo "Verfügbare Befehle:"
-	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-20s\033[0m %s\n", $$1, $$2}'
+	@echo "Open DAW MCP - Verfügbare Befehle:"
+	@echo ""
+	@echo "Entwicklung:"
+	@echo "  make dev          - Starte lokale Entwicklungsumgebung"
+	@echo "  make build        - Baue Docker-Images"
+	@echo "  make logs         - Zeige Container-Logs"
+	@echo "  make clean        - Stoppe und entferne Container"
+	@echo ""
+	@echo "Deployment:"
+	@echo "  make deploy-vm    - Deploy auf VM (87.106.81.49)"
+	@echo "  make logs-vm      - Zeige VM-Logs"
+	@echo ""
 
-local: ## Starte lokale Entwicklungsumgebung
-	docker-compose -f docker-compose.local.yml --env-file env.local up -d
+dev: ## Starte lokale Entwicklungsumgebung
+	docker-compose -f docker-compose.dev.yml up --build -d
+	@echo "🚀 Entwicklungsumgebung gestartet auf http://localhost:3001"
 
-local-down: ## Stoppe lokale Entwicklungsumgebung
-	docker-compose -f docker-compose.local.yml down
+build: ## Baue Docker-Images
+	docker-compose -f docker-compose.dev.yml build
+	@echo "🔨 Docker-Images gebaut"
 
-staging: ## Starte Staging-Umgebung
-	docker-compose -f docker-compose.staging.yml --env-file env.staging up -d
+logs: ## Zeige Container-Logs
+	docker-compose -f docker-compose.dev.yml logs -f
 
-staging-down: ## Stoppe Staging-Umgebung
-	docker-compose -f docker-compose.staging.yml down
+clean: ## Stoppe und entferne Container
+	docker-compose -f docker-compose.dev.yml down
+	@echo "🧹 Container gestoppt und entfernt"
 
-vm: ## Starte VM-Produktionsumgebung mit Cloudflare Tunnel
-	docker-compose -f docker-compose.vm.yml --env-file env.vm up -d
-
-vm-down: ## Stoppe VM-Produktionsumgebung
-	docker-compose -f docker-compose.vm.yml down
-
-build: ## Baue alle Docker-Images
-	docker-compose -f docker-compose.local.yml build
-	docker-compose -f docker-compose.staging.yml build
-	docker-compose -f docker-compose.vm.yml build
-
-clean: ## Bereinige alle Container und Volumes
-	docker-compose -f docker-compose.local.yml down -v
-	docker-compose -f docker-compose.staging.yml down -v
-	docker-compose -f docker-compose.vm.yml down -v
-	docker system prune -f
-
-logs: ## Zeige Logs aller Services
-	docker-compose -f docker-compose.local.yml logs -f
-
-logs-staging: ## Zeige Staging-Logs
-	docker-compose -f docker-compose.staging.yml logs -f
+deploy-vm: ## Deploy auf VM (87.106.81.49)
+	@echo "🚀 Deploy auf VM..."
+	ssh -i ~/.ssh/vm_key root@87.106.81.49 "cd /opt/open-daw-mcp && git pull origin main"
+	ssh -i ~/.ssh/vm_key root@87.106.81.49 "cd /opt/open-daw-mcp && docker-compose -f docker-compose.vm.yml down"
+	ssh -i ~/.ssh/vm_key root@87.106.81.49 "cd /opt/open-daw-mcp && docker-compose -f docker-compose.vm.yml up --build -d"
+	@echo "✅ Deployment abgeschlossen"
 
 logs-vm: ## Zeige VM-Logs
-	docker-compose -f docker-compose.vm.yml logs -f
+	ssh -i ~/.ssh/vm_key root@87.106.81.49 "cd /opt/open-daw-mcp && docker-compose -f docker-compose.vm.yml logs -f daw-server"
 
-logs-cloudflared: ## Zeige Cloudflare Tunnel Logs
-	docker-compose -f docker-compose.vm.yml logs cloudflared -f 
+test-api: ## Teste die API
+	@echo "🧪 Teste API..."
+	curl -s http://localhost:3001/api/health
+	@echo ""
+	curl -X POST http://localhost:3001/api/openwebui/functions \
+		-H "Content-Type: application/json" \
+		-d '{"function_name": "generate_melody", "parameters": {"description": "Test Melodie"}}'
+
+test-vm: ## Teste VM-API
+	@echo "🧪 Teste VM-API..."
+	ssh -i ~/.ssh/vm_key root@87.106.81.49 "curl -s http://localhost:3002/api/health" 

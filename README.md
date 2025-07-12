@@ -7,9 +7,8 @@
 **OpenWebUI:**
 `humanmusic.digitalalchemisten.de`
 
-
 **Wichtig:**
-- Der DAW-Server wird über den Docker-Service-Namen `daw-server:3002` von OpenWebUI erreicht
+- Der DAW-Server wird über den Docker-Service-Namen `daw-server:3001` von OpenWebUI erreicht
 - In Cloudflare als Service-URL immer `http://127.0.0.1:3000` verwenden (nicht localhost, nicht externe IP).
 - Die Tunnel müssen im Cloudflare Dashboard als "Public Hostname" konfiguriert werden.
 - Catch-all Regeln vermeiden, sonst gibt es 404-Fehler.
@@ -28,21 +27,34 @@ erledigt:
 1. **Gehen Sie zu:** Admin Panel → Settings → Tools
 2. **Fügen Sie ein neues Tool hinzu:**
    - **Name:** `DAW Server`
-   - **Tool-Server-URL:** `http://daw-server:3002` (Docker-Service-Name verwenden!)
-   - **Beschreibung:** `Digital Audio Workstation API für Melodie- und Song-Generierung`
+   - **Tool-Server-URL:** `http://daw-server:3001` (Docker-Service-Name verwenden!)
+   - **Beschreibung:** `Digital Audio Workstation API für Melodie- und Song-Generierung mit MusicXML`
 
 3. **Verfügbare Endpunkte:**
-   - `POST /generate-melody` - Generiert eine Melodie basierend auf Text
-   - `POST /generate-song` - Generiert einen kompletten Song
-   - `GET /` - API-Status und verfügbare Endpunkte
+   - `POST /api/openwebui/functions` - Generiert MusicXML basierend auf Text
+   - `POST /api/openwebui/chat` - Chat-Interface für Musikgenerierung
+   - `GET /api/health` - API-Status und verfügbare Endpunkte
 
-**Wichtig:** Da beide Services im selben Docker-Netzwerk laufen, verwenden Sie den Docker-Service-Namen `daw-server:3002` statt einer externen URL!
+**Wichtig:** Da beide Services im selben Docker-Netzwerk laufen, verwenden Sie den Docker-Service-Namen `daw-server:3001` statt einer externen URL!
+
+## MusicXML-Funktionen
+
+**Die neue Version generiert MusicXML-Dateien:**
+- 🎵 **Melodie-Generierung** - Einfache Melodien in C-Dur
+- 🎼 **Song-Generierung** - Komplette Songs mit mehreren Stimmen
+- 📝 **LLM-freundlich** - Text-basierte Beschreibungen
+- 🔄 **Konvertierbar** - MusicXML → MIDI → Audio
+
+**Beispiel-Befehle:**
+- "Erstelle eine fröhliche Melodie"
+- "Generiere einen Pop-Song mit Gitarre"
+- "Komponiere eine traurige Ballade"
 
 ## Nächste Schritte
 
 **✅ Bereits eingerichtet:**
 - OpenWebUI läuft auf `https://humanmusic.digitalalchemisten.de`
-- DAW-Server läuft im Docker-Container
+- DAW-Server läuft im Docker-Container (MusicXML-Version)
 - Cloudflare Tunnel ist konfiguriert
 - Tool ist in OpenWebUI eingerichtet
 
@@ -64,7 +76,7 @@ erledigt:
 1. **Gehen Sie zu:** Admin Panel → Settings → Tools
 2. **Überprüfen Sie das DAW-Tool:**
    - **Name:** `DAW Server`
-   - **URL:** `http://daw-server:3002`
+   - **URL:** `http://daw-server:3001`
    - **Status:** Sollte "Verbunden" zeigen
    - **Sichtbarkeit:** Sollte "Öffentlich" sein
 
@@ -77,19 +89,39 @@ erledigt:
 ### Schritt 3: Tool verwenden
 1. **Schreiben Sie eine Nachricht** wie "Erstelle eine fröhliche Melodie"
 2. **Das DAW-Tool sollte automatisch aktiviert werden**
-3. **Die Antwort sollte eine generierte Melodie enthalten**
+3. **Die Antwort sollte eine generierte MusicXML-Datei enthalten**
 
 ### Schritt 4: Troubleshooting
 **Falls das Tool nicht funktioniert:**
 1. **Überprüfen Sie die Container-Logs:**
-   ```bash
+```bash
    ssh root@87.106.81.49 "docker logs open-daw-mcp-daw-server-1"
    ```
 2. **Testen Sie die API direkt:**
    ```bash
-   ssh root@87.106.81.49 "curl http://localhost:3002/"
+   ssh root@87.106.81.49 "curl http://localhost:3002/api/health"
    ```
 3. **Starten Sie die Container neu:**
    ```bash
    ssh root@87.106.81.49 "cd /opt/open-daw-mcp && docker-compose -f docker-compose.vm.yml restart"
    ```
+
+## Deployment auf VM
+
+**Um die neue MusicXML-Version auf die VM zu deployen:**
+
+```bash
+# Auf der VM (87.106.81.49)
+ssh root@87.106.81.49
+
+# Repository aktualisieren
+cd /opt/open-daw-mcp
+git pull origin main
+
+# Container neu bauen und starten
+docker-compose -f docker-compose.vm.yml down
+docker-compose -f docker-compose.vm.yml up --build -d
+
+# Logs überprüfen
+docker-compose -f docker-compose.vm.yml logs -f daw-server
+```
