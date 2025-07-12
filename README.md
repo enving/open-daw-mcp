@@ -49,9 +49,7 @@ erledigt:
 **🎵 Jetzt können Sie loslegen:**
 
 1. **Gehen Sie zu:** `https://humanmusic.digitalalchemisten.de`
-2. **Anmelden** mit:
-   - **Username:** `admin`
-   - **Password:** `admin123`
+
 3. **Chat starten** und das DAW-Tool nutzen
 4. **Musik generieren** mit Befehlen wie:
    - "Erstelle eine fröhliche Melodie"
@@ -95,14 +93,3 @@ erledigt:
    ```bash
    ssh root@87.106.81.49 "cd /opt/open-daw-mcp && docker-compose -f docker-compose.vm.yml restart"
    ```
-
-**🔧 Weitere Möglichkeiten:**
-- **Neue Benutzer registrieren** (falls gewünscht)
-- **Weitere Tools hinzufügen** (z.B. für andere APIs)
-- **Modelle konfigurieren** (Ollama, OpenAI, etc.)
-- **Chats und Konversationen verwalten**
-
-**📊 Monitoring:**
-- **Logs anzeigen:** `make logs-vm`
-- **Container-Status:** `docker ps`
-- **OpenWebUI-Admin:** Einstellungen im Web-Interface 
