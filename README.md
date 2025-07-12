@@ -5,9 +5,8 @@
 **Für den produktiven Betrieb wird ein Cloudflare Tunnel empfohlen:**
 
 **OpenWebUI:**
-- Tunnel-Hostname: z.B. `humanmusic.digitalalchemisten.de`
-- Service-URL: `http://127.0.0.1:3000` (VM-IP verwenden!)
-- Damit ist das OpenWebUI-Frontend erreichbar
+`humanmusic.digitalalchemisten.de`
+
 
 **Wichtig:**
 - Der DAW-Server wird über den Docker-Service-Namen `daw-server:3002` von OpenWebUI erreicht
@@ -25,7 +24,7 @@
 ## OpenWebUI Tool-Konfiguration
 
 **Nach dem Anmelden in OpenWebUI:**
-
+erledigt:
 1. **Gehen Sie zu:** Admin Panel → Settings → Tools
 2. **Fügen Sie ein neues Tool hinzu:**
    - **Name:** `DAW Server`
