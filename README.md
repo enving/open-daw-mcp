@@ -1,5 +1,7 @@
 # Open DAW MCP – Produktionsumgebung
 
+ssh -i ~/.ssh/vm_key root@87.106.81.49 "docker ps"
+
 ## Cloudflare Tunnel Hinweise
 
 **Für den produktiven Betrieb wird ein Cloudflare Tunnel empfohlen:**

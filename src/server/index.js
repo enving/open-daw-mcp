@@ -5,7 +5,7 @@ import { join } from 'path'
 import { OpenWebUIMCPBridge } from './openwebui-bridge.js'
 
 const app = express()
-const PORT = process.env.PORT || 3001
+const PORT = process.env.PORT || 3002
 
 // CORS für OpenWebUI
 app.use(cors({
@@ -33,7 +33,11 @@ app.get('/openapi.json', (req, res) => {
       },
       servers: [
         {
-          url: "http://localhost:3001",
+          url: "http://daw-server:3002",
+          description: "Docker Service (internal)"
+        },
+        {
+          url: "http://localhost:3002",
           description: "Local development server"
         }
       ],
@@ -186,12 +190,12 @@ app.post('/api/openwebui/chat', async (req, res) => {
       responseText += `**Beschreibung:** ${result.song.description}\n\n`
       
       if (result.files && result.files.audio) {
-        audioUrl = `http://localhost:3001/api/audio/${result.files.audio}`
+        audioUrl = `http://daw-server:3002/api/audio/${result.files.audio}`
         responseText += `🎧 [Audio anhören](${audioUrl})\n\n`
       }
       
       if (result.files && result.files.midi) {
-        midiUrl = `http://localhost:3001/api/midi/${result.files.midi}`
+        midiUrl = `http://daw-server:3002/api/midi/${result.files.midi}`
         responseText += `🎼 [MIDI-Datei herunterladen](${midiUrl})\n\n`
       }
     }

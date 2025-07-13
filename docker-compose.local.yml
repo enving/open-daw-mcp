@@ -12,7 +12,7 @@ services:
     volumes:
       - ./src:/app/src
       - ./output:/app/output
-    command: ["node", "daw-http-server.js"]
+    command: ["node", "src/server/index.js"]
     restart: unless-stopped
 
   # Nginx für lokale Entwicklung

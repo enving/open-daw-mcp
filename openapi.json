@@ -7,8 +7,12 @@
   },
   "servers": [
     {
+      "url": "http://daw-server:3002",
+      "description": "Docker Service (internal)"
+    },
+    {
       "url": "http://87.106.81.49:3002",
-      "description": "DAW Server"
+      "description": "VM Production Server (external)"
     }
   ],
   "paths": {

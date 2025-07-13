@@ -7,10 +7,10 @@ services:
       context: .
       dockerfile: Dockerfile.dev
     ports:
-      - "3002:3001"
+      - "3002:3002"
     environment:
       - NODE_ENV=production
-      - PORT=3001
+      - PORT=3002
     volumes:
       - ./output:/app/output
     command: ["node", "src/server/index.js"]
