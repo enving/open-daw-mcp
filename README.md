@@ -1,148 +1,149 @@
 # Open DAW MCP – Produktionsumgebung
 
-ssh -i ~/.ssh/vm_key root@87.106.81.49 "docker ps"
+**🎵 Status: VOLLSTÄNDIG FUNKTIONSFÄHIG** ✅
 
-## Cloudflare Tunnel Hinweise
+Das System ist jetzt vollständig einsatzbereit! OpenWebUI erkennt das DAW-Tool automatisch und generiert MusicXML-Dateien basierend auf natürlichen Sprachbeschreibungen.
 
-**Für den produktiven Betrieb wird ein Cloudflare Tunnel empfohlen:**
+## 🚀 Live-System
 
-**OpenWebUI:**
-`humanmusic.digitalalchemisten.de`
+**URL:** `https://humanmusic.digitalalchemisten.de`
 
-**Wichtig:**
-- Der DAW-Server wird über den Docker-Service-Namen `daw-server:3001` von OpenWebUI erreicht
-- In Cloudflare als Service-URL immer `http://127.0.0.1:3000` verwenden (nicht localhost, nicht externe IP).
-- Die Tunnel müssen im Cloudflare Dashboard als "Public Hostname" konfiguriert werden.
-- Catch-all Regeln vermeiden, sonst gibt es 404-Fehler.
+**Funktionen:**
+- ✅ **Automatische Tool-Erkennung** - OpenWebUI erkennt das `daw-server` Tool
+- ✅ **MusicXML-Generierung** - Erstellt vollständige MusicXML-Dateien
+- ✅ **Stilbasierte Komposition** - Verschiedene Musikstile (Tame Impala, Tokio Hotel, etc.)
+- ✅ **Keine 400-Fehler mehr** - Tool-Calls funktionieren korrekt
 
-## Beispiel-Konfiguration Cloudflare Tunnel (ist bereits konfiguriert)
+## 🎼 Erfolgreiche Tests
 
-| Hostname                        | Service-URL                |
-|---------------------------------|----------------------------|
-| api.humanmusic.digitalalchemisten.de   | http://127.0.0.1:3002   |
-| humanmusic.digitalalchemisten.de       | http://87.106.81.49:3000      |
+**Erstellte Songs:**
+- **Tame Impala Style Song** (12:00 Uhr) → `musicxml_1752408055220.musicxml`
+- **Tokio Hotel Song** (12:45 Uhr) → `musicxml_1752410711082.musicxml`
 
-## OpenWebUI Tool-Konfiguration
+**Beispiel-Nutzung:**
+```
+Nutzer: "Erstelle einen Tame Impala Song"
+→ OpenWebUI erkennt automatisch das Tool
+→ Tool wird aufgerufen mit create_musicxml
+→ MusicXML wird generiert und gespeichert
+→ Erfolgreiche Antwort ohne Fehler
+```
 
-**Nach dem Anmelden in OpenWebUI:**
-erledigt:
-1. **Gehen Sie zu:** Admin Panel → Settings → Tools
-2. **Fügen Sie ein neues Tool hinzu:**
-   - **Name:** `DAW Server`
-   - **Tool-Server-URL:** `http://daw-server:3001` (Docker-Service-Name verwenden!)
-   - **Beschreibung:** `Digital Audio Workstation API für Melodie- und Song-Generierung mit MusicXML`
+## 🔧 System-Architektur
 
-3. **Verfügbare Endpunkte:**
-   - `POST /api/openwebui/functions` - Generiert MusicXML basierend auf Text
-   - `POST /api/openwebui/chat` - Chat-Interface für Musikgenerierung
-   - `GET /api/health` - API-Status und verfügbare Endpunkte
+**Docker-Container:**
+- **OpenWebUI** (`opt-openwebui-1`) - Web-Interface auf Port 3000
+- **DAW-Server** (`opt-daw-server-1`) - MusicXML-Generator auf Port 3002
+- **Ollama** (`opt-ollama-1`) - Lokale LLM-Unterstützung
+- **Cloudflare** (`opt-cloudflared-1`) - Tunnel für externe Zugriffe
 
-**Wichtig:** Da beide Services im selben Docker-Netzwerk laufen, verwenden Sie den Docker-Service-Namen `daw-server:3001` statt einer externen URL!
+**Tool-Integration:**
+- **Tool-Name:** `daw-server`
+- **Funktion:** `create_musicxml`
+- **Parameter:** `description`, `style`, `duration`
+- **Rückgabe:** MusicXML-Datei wird erstellt und gespeichert
 
-## MusicXML-Funktionen
+## 📝 System-Prompt für LLM
 
-**Die neue Version generiert MusicXML-Dateien:**
-- 🎵 **Melodie-Generierung** - Einfache Melodien in C-Dur
-- 🎼 **Song-Generierung** - Komplette Songs mit mehreren Stimmen
-- 📝 **LLM-freundlich** - Text-basierte Beschreibungen
-- 🔄 **Konvertierbar** - MusicXML → MIDI → Audio
+**Aktueller System-Prompt (funktioniert perfekt):**
+```
+Du bist ein KI-Musikkomponist.
+Deine Aufgabe ist es, auf jede Nutzereingabe ein vollständiges, gültiges MusicXML-Dokument zu generieren.
 
-**Beispiel-Befehle:**
-- "Erstelle eine fröhliche Melodie"
-- "Generiere einen Pop-Song mit Gitarre"
-- "Komponiere eine traurige Ballade"
+Nutze IMMER das Tool daw-server mit der Funktion create_musicxml, um das MusicXML an den Server zu übergeben.
 
-## Nächste Schritte
+WICHTIGE REGELN:
+- Antworte niemals direkt mit MusicXML im Chat - nutze immer das Tool!
+- Die MusicXML-Datei soll mindestens eine Melodie-Stimme enthalten, gerne auch Bass, Akkorde oder weitere Instrumente.
+- Die Musik soll zur Beschreibung des Nutzers passen (Stil, Stimmung, Instrumente, Tempo).
+- Gib nur den reinen XML-Text zurück, keine Codeblöcke oder Erklärungen.
 
-**✅ Bereits eingerichtet:**
-- OpenWebUI läuft auf `https://humanmusic.digitalalchemisten.de`
-- DAW-Server läuft im Docker-Container (MusicXML-Version)
-- Cloudflare Tunnel ist konfiguriert
-- Tool ist in OpenWebUI eingerichtet
+Typische Nutzeranfragen:
+- "Mache einen Song im Stil von Tame Impala mit psychedelischen Synths und groovigem Bass."
+- "Komponiere eine traurige Ballade für Klavier und Streicher."
+- "Erstelle eine fröhliche Melodie in C-Dur."
 
-**🎵 Jetzt können Sie loslegen:**
+WICHTIG: Nutze IMMER das Tool daw-server mit create_musicxml!
+```
 
-1. **Gehen Sie zu:** `https://humanmusic.digitalalchemisten.de`
+## 🎵 Verfügbare Musikstile
 
-3. **Chat starten** und das DAW-Tool nutzen
-4. **Musik generieren** mit Befehlen wie:
-   - "Erstelle eine fröhliche Melodie"
-   - "Generiere einen Song mit Gitarre und Schlagzeug"
-   - "Komponiere eine traurige Ballade"
+**Automatisch erkannte Stile:**
+- **Tame Impala** - Psychedelic Rock mit Synths
+- **Rock** - Energetische Gitarrenmusik
+- **Jazz** - Smooth, sophisticated
+- **Electronic/Pop** - Moderne Pop-Musik
+- **Custom** - Basierend auf Beschreibung
 
-## Tool-Aktivierung in OpenWebUI
+**Beispiel-Anfragen:**
+- "Erstelle einen Tame Impala Style Song"
+- "Komponiere einen Rock-Song mit Gitarre"
+- "Generiere eine Jazz-Ballade"
+- "Mache einen elektronischen Pop-Song"
 
-**Falls das DAW-Tool nicht angezeigt wird:**
+## 🔧 Technische Details
 
-### Schritt 1: Tool-Konfiguration überprüfen
-1. **Gehen Sie zu:** Admin Panel → Settings → Tools
-2. **Überprüfen Sie das DAW-Tool:**
-   - **Name:** `DAW Server`
-   - **URL:** `http://daw-server:3001`
-   - **Status:** Sollte "Verbunden" zeigen
-   - **Sichtbarkeit:** Sollte "Öffentlich" sein
+**OpenAPI-Spezifikation:**
+- **Endpoint:** `/api/openwebui/functions`
+- **Methode:** `POST`
+- **Parameter:** `function_name`, `parameters`
+- **Unterstützte Funktionen:** `create_musicxml`, `generate_melody`, `generate_song`
 
-### Schritt 2: Tool in Chat aktivieren
-1. **Starten Sie einen neuen Chat**
-2. **Klicken Sie auf das Tool-Symbol** (🔧 oder ⚙️) in der Chat-Sidebar
-3. **Aktivieren Sie das DAW-Tool** durch Anklicken
-4. **Das Tool sollte jetzt in der Tool-Liste erscheinen**
+**MusicXML-Output:**
+- **Verzeichnis:** `/app/output/musicxml/` (im Container)
+- **Format:** Standard MusicXML 3.1
+- **Inhalt:** Vollständige Partituren mit Noten, Tempo, Tonart
+- **Speicherung:** Automatisch mit Zeitstempel
 
-### Schritt 3: Tool verwenden
-1. **Schreiben Sie eine Nachricht** wie "Erstelle eine fröhliche Melodie"
-2. **Das DAW-Tool sollte automatisch aktiviert werden**
-3. **Die Antwort sollte eine generierte MusicXML-Datei enthalten**
+## 🚀 Deployment
 
-### Schritt 4: Troubleshooting
-**Falls das Tool nicht funktioniert:**
-1. **Überprüfen Sie die Container-Logs:**
+**Container-Status prüfen:**
 ```bash
-   ssh root@87.106.81.49 "docker logs open-daw-mcp-daw-server-1"
-   ```
-2. **Testen Sie die API direkt:**
-   ```bash
-   ssh root@87.106.81.49 "curl http://localhost:3002/api/health"
-   ```
-3. **Starten Sie die Container neu:**
-   ```bash
-   ssh root@87.106.81.49 "cd /opt/open-daw-mcp && docker-compose -f docker-compose.vm.yml restart"
-   ```
+ssh root@87.106.81.49 "docker ps"
+```
 
-## Deployment auf VM
-
-**Um die neue MusicXML-Version auf die VM zu deployen:**
-
+**Logs anzeigen:**
 ```bash
-# Auf der VM (87.106.81.49)
-ssh root@87.106.81.49
-
-# Repository aktualisieren
-cd /opt/open-daw-mcp
-git pull origin main
-
-# Container neu bauen und starten
-docker-compose -f docker-compose.vm.yml down
-docker-compose -f docker-compose.vm.yml up --build -d
-
-# Logs überprüfen
-docker-compose -f docker-compose.vm.yml logs -f daw-server
+ssh root@87.106.81.49 "docker logs opt-daw-server-1"
 ```
 
-## ✅ Erfolgreich aktualisiert:
-
-1. **Keine `mido`-Fehler mehr** - Die Bridge verwendet jetzt nur noch MusicXML
-2. **Bessere Melodie-Generierung** - Verschiedene Notenlängen (480 = quarter, 240 = eighth)
-3. **Interessantere Melodien** - C, E mit verschiedenen Oktaven (4, 5)
-4. **Beschreibungsbasierte Anpassung** - "fröhlich" → C-Dur
-
-##  Das DAW-Tool funktioniert jetzt perfekt!
-
-Du kannst jetzt in OpenWebUI (`https://humanmusic.digitalalchemisten.de`) das DAW-Tool verwenden:
-
-```
-@DAW Server: Erstelle eine fröhliche Melodie
-@DAW Server: Erstelle eine traurige Melodie  
-@DAW Server: Erstelle einen energischen Rock-Song
+**Container neu starten:**
+```bash
+ssh root@87.106.81.49 "cd /opt/open-daw-mcp && docker-compose -f docker-compose.vm.yml restart"
 ```
 
-Die neuen MusicXML-Dateien enthalten jetzt viel interessantere Melodien mit verschiedenen Notenlängen und Oktaven! Das System ist vollständig produktionsbereit ohne Python-Abhängigkeiten.
+## 📊 Monitoring
+
+**MusicXML-Dateien anzeigen:**
+```bash
+ssh root@87.106.81.49 "docker exec opt-daw-server-1 ls -lh /app/output/musicxml/"
+```
+
+**Neueste Datei anzeigen:**
+```bash
+ssh root@87.106.81.49 "docker exec opt-daw-server-1 tail -20 /app/output/musicxml/musicxml_*.musicxml"
+```
+
+## ✅ Erfolgreich gelöst
+
+**Behobene Probleme:**
+1. ✅ **HTTP 400-Fehler** - Tool-Calls funktionieren jetzt korrekt
+2. ✅ **Tool-Erkennung** - OpenWebUI erkennt das `daw-server` Tool
+3. ✅ **MusicXML-Generierung** - Vollständige Partituren werden erstellt
+4. ✅ **Stilbasierte Komposition** - Verschiedene Musikstile werden erkannt
+5. ✅ **Automatische Tool-Aktivierung** - Keine manuelle Konfiguration nötig
+
+## 🎯 Nächste Schritte
+
+**Mögliche Erweiterungen:**
+- **Audio-Rendering** - MusicXML → WAV/MP3
+- **MIDI-Export** - MusicXML → MIDI-Dateien
+- **Mehr Instrumente** - Erweiterte Instrumenten-Bibliothek
+- **Komplexere Arrangements** - Mehrstimmige Kompositionen
+- **Stil-Templates** - Vordefinierte Musikstile
+
+**Das System ist jetzt vollständig produktionsbereit!** 🎉
+
+---
+
+**Letzte Aktualisierung:** 13. Juli 2024 - System funktioniert vollständig ✅

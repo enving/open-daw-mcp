@@ -44,6 +44,61 @@
         }
       }
     },
+    "/api/openwebui/functions": {
+      "post": {
+        "summary": "Execute function call",
+        "description": "Führt einen Funktionsaufruf für OpenWebUI aus",
+        "operationId": "executeFunction",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "function_name": {
+                    "type": "string",
+                    "description": "Name der aufzurufenden Funktion",
+                    "enum": ["create_musicxml", "generate_melody", "generate_song"]
+                  },
+                  "parameters": {
+                    "type": "object",
+                    "description": "Parameter für die Funktion"
+                  }
+                },
+                "required": ["function_name"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Funktion erfolgreich ausgeführt",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    },
+                    "result": {
+                      "type": "object"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Ungültige Anfrage"
+          },
+          "500": {
+            "description": "Server-Fehler"
+          }
+        }
+      }
+    },
     "/generate-melody": {
       "post": {
         "summary": "Melodie generieren",
@@ -231,6 +286,70 @@
             "description": "Datei nicht gefunden"
           }
         }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "create_musicxml_request": {
+        "type": "object",
+        "properties": {
+          "description": {
+            "type": "string",
+            "description": "Beschreibung der gewünschten Musik"
+          },
+          "style": {
+            "type": "string",
+            "description": "Musikstil oder Künstler-Inspiration",
+            "default": "pop"
+          },
+          "duration": {
+            "type": "number",
+            "description": "Dauer in Sekunden",
+            "default": 60
+          }
+        },
+        "required": ["description"]
+      },
+      "generate_melody_request": {
+        "type": "object",
+        "properties": {
+          "description": {
+            "type": "string",
+            "description": "Beschreibung der gewünschten Melodie"
+          },
+          "duration": {
+            "type": "number",
+            "description": "Dauer in Sekunden",
+            "default": 30
+          },
+          "tempo": {
+            "type": "number",
+            "description": "Tempo in BPM",
+            "default": 120
+          }
+        },
+        "required": ["description"]
+      },
+      "generate_song_request": {
+        "type": "object",
+        "properties": {
+          "description": {
+            "type": "string",
+            "description": "Beschreibung des gewünschten Songs"
+          },
+          "duration": {
+            "type": "number",
+            "description": "Dauer in Sekunden",
+            "default": 60
+          },
+          "style": {
+            "type": "string",
+            "description": "Musikstil",
+            "default": "pop"
+          }
+        },
+        "required": ["description"]
       }
     }
   }
