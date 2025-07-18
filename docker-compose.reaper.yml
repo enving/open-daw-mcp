@@ -1,0 +1,39 @@
+version: '3.8'
+
+services:
+  reaper-headless:
+    build:
+      context: .
+      dockerfile: Dockerfile.reaper
+    ports:
+      - "8080:8080"  # Reaper Web Interface
+    volumes:
+      - ./output:/app/output
+      - ./projects:/app/projects
+      - reaper-config:/root/.config/REAPER
+    environment:
+      - REAPER_WEB_PORT=8080
+      - REAPER_WEB_ALLOW_CONTROL=1
+      - PYTHONPATH=/app/src
+    restart: unless-stopped
+    command: /usr/local/bin/start-reaper.sh
+
+  reaper-api:
+    build:
+      context: .
+      dockerfile: Dockerfile.reaper
+    ports:
+      - "9010:8001"  # Our API (Port 9010)
+    volumes:
+      - ./output:/app/output
+      - ./projects:/app/projects
+      - reaper-config:/root/.config/REAPER
+    environment:
+      - PYTHONPATH=/app/src
+    depends_on:
+      - reaper-headless
+    restart: unless-stopped
+    command: python3 /app/src/server/reaper_api.py
+
+volumes:
+  reaper-config: 

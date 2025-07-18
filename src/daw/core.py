@@ -20,6 +20,7 @@ import numpy as np
 from .plugins import PluginHost
 from .audio import AudioEngine
 from .midi import MidiEngine
+from .reaper import ReaperIntegration, get_reaper_integration
 
 # Logging Setup
 logging.basicConfig(level=logging.INFO)
@@ -75,6 +76,9 @@ class HeadlessDaw:
         self.audio_engine = AudioEngine()
         self.midi_engine = MidiEngine()
         self.plugin_host = PluginHost()
+        
+        # Reaper Integration
+        self.reaper_integration = get_reaper_integration()
         
         # JACK Client
         self.jack_client = None
@@ -283,6 +287,79 @@ class HeadlessDaw:
         except Exception as e:
             logger.error(f"MIDI Export fehlgeschlagen: {e}")
             return False
+    
+    # Reaper/MusicXML Integration
+    def import_musicxml_to_reaper(self, xml_file: str, project_name: str = None) -> bool:
+        """
+        Importiert eine MusicXML-Datei in Reaper
+        
+        Args:
+            xml_file: Pfad zur MusicXML-Datei
+            project_name: Name des Reaper Projekts
+            
+        Returns:
+            True wenn erfolgreich
+        """
+        return self.reaper_integration.import_musicxml_to_reaper(xml_file, project_name)
+    
+    def export_reaper_audio(self, output_file: str, format: str = "wav") -> bool:
+        """
+        Exportiert das aktuelle Reaper Projekt als Audio
+        
+        Args:
+            output_file: Ausgabedatei
+            format: Audio Format (wav, mp3, etc.)
+            
+        Returns:
+            True wenn erfolgreich
+        """
+        return self.reaper_integration.export_audio(output_file, format)
+    
+    def play_reaper_project(self) -> bool:
+        """Spielt das aktuelle Reaper Projekt ab"""
+        return self.reaper_integration.play_project()
+    
+    def stop_reaper_project(self) -> bool:
+        """Stoppt die Reaper Wiedergabe"""
+        return self.reaper_integration.stop_project()
+    
+    def get_reaper_project_info(self) -> Dict[str, Any]:
+        """Gibt Informationen über das aktuelle Reaper Projekt zurück"""
+        return self.reaper_integration.get_project_info()
+    
+    def parse_musicxml(self, xml_file: str) -> List[Dict[str, Any]]:
+        """
+        Parst eine MusicXML-Datei und gibt Track-Informationen zurück
+        
+        Args:
+            xml_file: Pfad zur MusicXML-Datei
+            
+        Returns:
+            Liste von Track-Informationen
+        """
+        tracks = self.reaper_integration.parse_musicxml(xml_file)
+        
+        # Konvertiere zu Dictionary-Format für JSON-Serialisierung
+        track_info = []
+        for track in tracks:
+            track_data = {
+                "name": track.name,
+                "instrument": track.instrument,
+                "channel": track.channel,
+                "note_count": len(track.notes),
+                "notes": [
+                    {
+                        "pitch": note.pitch,
+                        "duration": note.duration,
+                        "start_time": note.start_time,
+                        "velocity": note.velocity
+                    }
+                    for note in track.notes
+                ]
+            }
+            track_info.append(track_data)
+        
+        return track_info
     
     # Cleanup
     def shutdown(self):

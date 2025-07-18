@@ -1,0 +1,109 @@
+FROM ubuntu:22.04
+
+# Let the installation process of jackd automatically select yes
+RUN echo "jackd2 jackd/tweak_rt_limits boolean true" | debconf-set-selections
+
+# Enable 32-bit architecture and install core dependencies
+RUN dpkg --add-architecture i386 && \
+    DEBIAN_FRONTEND=noninteractive apt-get update && apt-get install -y \
+    software-properties-common \
+    wget \
+    xvfb \
+    vim \
+    git \
+    tmux \
+    sudo \
+    # Core audio libraries
+    libasound2 \
+    libasound2-plugins \
+    alsa-base \
+    alsa-utils \
+    # JACK audio support
+    jackd2 \
+    # GTK3 dependencies
+    libgtk-3-0 \
+    libcairo2 \
+    libgdk-pixbuf2.0-0 \
+    # GLib dependencies
+    libglib2.0-0 \
+    # Pango/font rendering
+    libpango-1.0-0 \
+    libpangocairo-1.0-0 \
+    # Other libraries required for VSTs
+    libcurl4 \
+    libfreetype6 \
+    # Fontconfig
+    libfontconfig1 \
+    # Python dependencies
+    python3 \
+    python3-pip \
+    python3-venv \
+    # Build tools
+    build-essential \
+    pkg-config \
+    cmake \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create the 'reaper' user with sudo access
+ARG USERNAME=reaper
+ARG USER_UID=1000
+ARG USER_GID=1000
+RUN groupadd --gid $USER_GID $USERNAME \
+    && useradd --uid $USER_UID --gid $USER_GID -m $USERNAME -s /bin/bash \
+    && echo $USERNAME ALL=\(root\) NOPASSWD:ALL > /etc/sudoers.d/$USERNAME \
+    && chmod 0440 /etc/sudoers.d/$USERNAME
+
+# Create audio group
+ARG AUDIO_GID=29
+RUN groupadd -f -g $AUDIO_GID audio \
+    && usermod -aG audio $USERNAME \
+    && usermod -aG audio root
+
+# Enable realtime scheduling for jack server required by REAPER
+RUN echo "@audio - rtprio 99" >> /etc/security/limits.d/audio.conf && \
+    echo "@audio - memlock unlimited" >> /etc/security/limits.d/audio.conf && \
+    usermod -aG audio ${USERNAME}
+
+# Set working directory
+WORKDIR /app
+
+# Install Python dependencies
+COPY requirements.txt .
+RUN pip3 install --no-cache-dir -r requirements.txt
+
+# Download and extract REAPER (portable mode)
+RUN mkdir -p /opt/reaper
+WORKDIR /opt/reaper
+RUN wget -O reaper.tar.xz https://www.reaper.fm/files/7.x/reaper735_linux_x86_64.tar.xz \
+    && tar -xf reaper.tar.xz --strip-components=1 \
+    && rm reaper.tar.xz
+
+# Configure REAPER environment
+ENV PATH="/opt/reaper/REAPER:${PATH}"
+ENV JACK_NO_AUDIO_RESERVATION="1"
+
+# Create REAPER configuration
+RUN mkdir -p /root/.config/REAPER
+COPY reaper.ini /root/.config/REAPER/
+
+# Create output directories
+RUN mkdir -p /app/output/audio /app/output/musicxml /app/projects
+
+# Copy application code
+COPY src/ /app/src/
+COPY web/ /app/web/
+COPY output/ /app/output/
+
+# Copy and configure start script
+COPY start-reaper.sh /usr/local/bin/
+RUN chmod +x /usr/local/bin/start-reaper.sh
+
+# Expose ports
+EXPOSE 8080 8001
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+    CMD curl -f http://localhost:8001/health || exit 1
+
+# Default command
+CMD ["/usr/local/bin/start-reaper.sh"] 
