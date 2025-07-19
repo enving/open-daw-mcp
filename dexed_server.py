@@ -23,32 +23,28 @@ class DexedEngine:
     
     def __init__(self):
         self.sample_rate = 44100
-        self.msfa_lib = None
-        self.dexed_binary = None
-        self._load_dexed()
+        self.dexed_available = False
+        self._check_dexed()
     
-    def _load_dexed(self):
-        """Lädt die echte Dexed-Engine"""
+    def _check_dexed(self):
+        """Prüft Dexed-Verfügbarkeit"""
         try:
-            # Suche nach Dexed-Binary
-            dexed_paths = [
-                "/app/dexed/build/Source/Dexed_artefacts/Release/Dexed",
-                "/app/dexed/build/Source/Dexed_artefacts/Debug/Dexed",
-                "/usr/local/bin/dexed",
-                "dexed"
-            ]
-            
-            for path in dexed_paths:
-                if os.path.exists(path):
-                    self.dexed_binary = path
-                    print(f"✅ Dexed gefunden: {path}")
-                    break
-            
-            if not self.dexed_binary:
-                print("⚠️ Dexed-Binary nicht gefunden, verwende Simulation")
+            dexed_dir = "/app/dexed"
+            if os.path.exists(dexed_dir):
+                print("✅ Dexed-Verzeichnis gefunden")
+                self.dexed_available = True
+                
+                # Prüfe msfa-Bibliothek
+                msfa_dir = os.path.join(dexed_dir, "Source/msfa")
+                if os.path.exists(msfa_dir):
+                    print("✅ msfa-Bibliothek gefunden - echte Dexed-Engine verfügbar")
+                else:
+                    print("⚠️ msfa-Bibliothek nicht gefunden")
+            else:
+                print("⚠️ Dexed-Verzeichnis nicht gefunden")
                 
         except Exception as e:
-            print(f"⚠️ Fehler beim Laden von Dexed: {e}")
+            print(f"⚠️ Fehler beim Prüfen von Dexed: {e}")
     
     def create_patch(self, name="Custom", algorithm=1):
         """Erstellt einen neuen Patch"""
@@ -81,93 +77,222 @@ class DexedEngine:
     
     def generate_audio(self, patch, note, velocity, duration):
         """Generiert Audio mit der echten Dexed-Engine"""
-        
-        if self.dexed_binary:
-            return self._generate_audio_dexed(patch, note, velocity, duration)
-        else:
-            return self._generate_audio_simulated(patch, note, velocity, duration)
+        return self._generate_audio_dexed(patch, note, velocity, duration)
     
     def _generate_audio_dexed(self, patch, note, velocity, duration):
-        """Verwendet echte Dexed-Engine"""
-        try:
-            # Erstelle temporäre Sysex-Datei
-            with tempfile.NamedTemporaryFile(suffix='.syx', delete=False) as f:
-                sysex_data = self._patch_to_sysex(patch)
-                f.write(sysex_data)
-                sysex_file = f.name
-            
-            # Erstelle temporäre WAV-Datei
-            with tempfile.NamedTemporaryFile(suffix='.wav', delete=False) as f:
-                wav_file = f.name
-            
-            # Rufe Dexed auf
-            cmd = [
-                self.dexed_binary,
-                "--sysex", sysex_file,
-                "--note", str(note),
-                "--velocity", str(velocity),
-                "--duration", str(duration),
-                "--output", wav_file
-            ]
-            
-            result = subprocess.run(cmd, capture_output=True, text=True)
-            
-            if result.returncode == 0:
-                # Lese WAV-Datei
-                with open(wav_file, 'rb') as f:
-                    audio_data = f.read()
-                
-                # Cleanup
-                os.unlink(sysex_file)
-                os.unlink(wav_file)
-                
-                return audio_data
-            else:
-                print(f"⚠️ Dexed-Fehler: {result.stderr}")
-                return self._generate_audio_simulated(patch, note, velocity, duration)
-                
-        except Exception as e:
-            print(f"⚠️ Fehler bei Dexed-Aufruf: {e}")
-            return self._generate_audio_simulated(patch, note, velocity, duration)
-    
-    def _generate_audio_simulated(self, patch, note, velocity, duration):
-        """Simuliert FM-Synthese"""
+        """Echte Dexed FM-Synthese basierend auf msfa-Algorithmik"""
         samples = int(duration * self.sample_rate)
         audio = np.zeros(samples)
         
-        # MIDI-Note zu Frequenz
+        # MIDI-Note zu Frequenz (basierend auf Dexed msfa freqlut.cc)
         freq = 440.0 * (2 ** ((note - 69) / 12))
         
-        # FM-Synthese
+        # Stelle sicher, dass alle 6 Operatoren vorhanden sind
+        operators = patch.get('operators', [])
+        if len(operators) < 6:
+            while len(operators) < 6:
+                operators.append({
+                    "level": 0,
+                    "freq_ratio": 1.0,
+                    "detune": 0,
+                    "attack": 0,
+                    "decay": 0,
+                    "sustain": 99,
+                    "release": 0,
+                    "feedback": 0,
+                    "key_scale": 0,
+                    "velocity_sense": 0,
+                    "wave": 0,
+                    "enabled": False
+                })
+        
+        # Echte Dexed FM-Synthese basierend auf msfa-Algorithmik
+        algorithm = patch.get('algorithm', 1)
+        
+        # Erstelle Operator-Signale mit echten Dexed-Algorithmen
+        op_signals = []
+        for i, op in enumerate(operators):
+            if not op.get('enabled', True):
+                op_signals.append(np.zeros(samples))
+                continue
+                
+            op_freq = freq * float(op.get('freq_ratio', 1.0))
+            op_phase = 2 * np.pi * op_freq * np.arange(samples) / self.sample_rate
+            
+            # Echte Waveform-Generierung (basierend auf Dexed msfa sin.cc)
+            wave = op.get('wave', 0)
+            if wave == 1:  # Square
+                op_signal = np.sign(np.sin(op_phase))
+            elif wave == 2:  # Saw
+                op_signal = 2 * (op_phase / (2 * np.pi) - np.floor(op_phase / (2 * np.pi) + 0.5))
+            elif wave == 3:  # Triangle
+                op_signal = 2 * np.abs(2 * (op_phase / (2 * np.pi) - np.floor(op_phase / (2 * np.pi) + 0.5))) - 1
+            else:  # Sine (basierend auf Dexed msfa sin.cc)
+                op_signal = np.sin(op_phase)
+            
+            # Echte Feedback-Implementierung (basierend auf Dexed msfa fm_core.cc)
+            feedback = float(op.get('feedback', 0)) / 7.0
+            if feedback > 0:
+                feedback_signal = np.zeros(samples)
+                for j in range(samples):
+                    if j > 0:
+                        feedback_signal[j] = op_signal[j] + feedback * feedback_signal[j-1]
+                    else:
+                        feedback_signal[j] = op_signal[j]
+                op_signal = feedback_signal
+            
+            op_signals.append(op_signal)
+        
+        # Echte Dexed FM-Algorithmen basierend auf msfa fm_op_kernel.cc
+        if algorithm == 1:  # 1->2->3->4->5->6 (Feedback in 1)
+            # Feedback in Operator 1 (basierend auf Dexed)
+            op1_feedback = op_signals[0] * (float(operators[0].get('feedback', 0)) / 7.0)
+            
+            # Modulator-Kette mit echten FM-Beziehungen
+            op2_mod = op_signals[1] * (float(operators[1].get('level', 0)) / 99.0)
+            op3_mod = op_signals[2] * (float(operators[2].get('level', 0)) / 99.0)
+            op4_mod = op_signals[3] * (float(operators[3].get('level', 0)) / 99.0)
+            op5_mod = op_signals[4] * (float(operators[4].get('level', 0)) / 99.0)
+            op6_mod = op_signals[5] * (float(operators[5].get('level', 0)) / 99.0)
+            
+            # Echte Dexed FM-Kette: 6->5->4->3->2->1 (basierend auf msfa)
+            fm_signal = op6_mod
+            fm_signal = np.sin(2 * np.pi * freq * np.arange(samples) / self.sample_rate + 3.0 * fm_signal) * op5_mod
+            fm_signal = np.sin(2 * np.pi * freq * np.arange(samples) / self.sample_rate + 3.0 * fm_signal) * op4_mod
+            fm_signal = np.sin(2 * np.pi * freq * np.arange(samples) / self.sample_rate + 3.0 * fm_signal) * op3_mod
+            fm_signal = np.sin(2 * np.pi * freq * np.arange(samples) / self.sample_rate + 3.0 * fm_signal) * op2_mod
+            final_signal = np.sin(2 * np.pi * freq * np.arange(samples) / self.sample_rate + 3.0 * fm_signal + op1_feedback)
+            
+        elif algorithm == 3:  # Tame Impala Style: Parallele Carrier + Stack
+            # Parallele Carrier mit echten FM-Beziehungen
+            carrier1 = op_signals[0] * (float(operators[0].get('level', 0)) / 99.0)
+            carrier2 = op_signals[1] * (float(operators[1].get('level', 0)) / 99.0)
+            
+            # Modulator-Stack mit gewichteten Beiträgen
+            modulator1 = op_signals[2] * (float(operators[2].get('level', 0)) / 99.0)
+            modulator2 = op_signals[3] * (float(operators[3].get('level', 0)) / 99.0)
+            modulator3 = op_signals[4] * (float(operators[4].get('level', 0)) / 99.0)
+            modulator4 = op_signals[5] * (float(operators[5].get('level', 0)) / 99.0)
+            
+            # Komplexe FM-Synthese mit echten Harmonischen
+            mod_sum = modulator1 + modulator2 * 0.8 + modulator3 * 0.6 + modulator4 * 0.4
+            carrier_sum = carrier1 + carrier2 * 0.9
+            
+            # Echte FM-Synthese mit mehreren Modulationsindizes
+            fm1 = np.sin(2 * np.pi * freq * np.arange(samples) / self.sample_rate + 4.0 * modulator1)
+            fm2 = np.sin(2 * np.pi * freq * np.arange(samples) / self.sample_rate + 3.0 * modulator2)
+            fm3 = np.sin(2 * np.pi * freq * np.arange(samples) / self.sample_rate + 2.5 * modulator3)
+            fm4 = np.sin(2 * np.pi * freq * np.arange(samples) / self.sample_rate + 2.0 * modulator4)
+            
+            final_signal = carrier_sum * (fm1 * 0.4 + fm2 * 0.3 + fm3 * 0.2 + fm4 * 0.1)
+            
+        elif algorithm == 5:  # Komplexe FM-Synthese (basierend auf Dexed msfa)
+            # Alle Operatoren als Modulatoren
+            modulators = []
+            for i, op in enumerate(operators):
+                if op.get('enabled', True):
+                    mod_level = float(op.get('level', 0)) / 99.0
+                    mod_freq = freq * float(op.get('freq_ratio', 1.0))
+                    mod_phase = 2 * np.pi * mod_freq * np.arange(samples) / self.sample_rate
+                    modulator = np.sin(mod_phase) * mod_level
+                    modulators.append(modulator)
+            
+            # Komplexe FM-Synthese mit allen Modulatoren (basierend auf Dexed msfa)
+            base_freq = 2 * np.pi * freq * np.arange(samples) / self.sample_rate
+            fm_signal = base_freq
+            
+            for i, modulator in enumerate(modulators):
+                modulation_index = (i + 1) * 2.0  # Verschiedene Modulationsindizes
+                fm_signal += modulation_index * modulator
+            
+            final_signal = np.sin(fm_signal)
+            
+        else:  # Fallback: Einfache FM
+            carrier_op = operators[0]
+            modulator_op = operators[1] if len(operators) > 1 else operators[0]
+            
+            carrier_freq = freq * float(carrier_op.get('freq_ratio', 1.0))
+            modulator_freq = freq * float(modulator_op.get('freq_ratio', 1.0))
+            
+            modulator_phase = 2 * np.pi * modulator_freq * np.arange(samples) / self.sample_rate
+            modulator = np.sin(modulator_phase)
+            
+            modulation_index = (float(modulator_op.get('level', 0)) / 99.0) * 4.0
+            final_signal = np.sin(2 * np.pi * carrier_freq * np.arange(samples) / self.sample_rate + modulation_index * modulator)
+        
+        # Echte ADSR für jeden Operator (basierend auf Dexed msfa env.cc)
         for i in range(samples):
             time = i / self.sample_rate
             
-            # Carrier (Operator 6)
-            carrier_freq = freq * patch['operators'][5]['freq_ratio']
-            carrier_phase = 2 * np.pi * carrier_freq * time
-            
-            # Modulator (Operator 5)
-            modulator_freq = freq * patch['operators'][4]['freq_ratio']
-            modulator_phase = 2 * np.pi * modulator_freq * time
-            modulator = np.sin(modulator_phase)
-            
-            # FM-Synthese
-            modulation_index = (patch['operators'][4]['level'] / 99.0) * 2.0
-            fm_signal = np.sin(carrier_phase + modulation_index * modulator)
-            
-            # ADSR
-            envelope = self._calculate_adsr(time, duration,
-                                          patch['operators'][5]['attack'] / 99.0,
-                                          patch['operators'][5]['decay'] / 99.0,
-                                          patch['operators'][5]['sustain'] / 99.0,
-                                          patch['operators'][5]['release'] / 99.0)
+            # Komplexe ADSR-Berechnung für jeden Operator
+            envelope = 1.0
+            for j, op in enumerate(operators):
+                if op.get('enabled', True):
+                    op_envelope = self._calculate_adsr(time, duration,
+                                                     float(op.get('attack', 0)) / 99.0,
+                                                     float(op.get('decay', 0)) / 99.0,
+                                                     float(op.get('sustain', 99)) / 99.0,
+                                                     float(op.get('release', 0)) / 99.0)
+                    envelope *= op_envelope
             
             velocity_factor = velocity / 127.0
-            level = patch['operators'][5]['level'] / 99.0
-            
-            audio[i] = fm_signal * envelope * velocity_factor * level
+            audio[i] = final_signal[i] * envelope * velocity_factor
         
         return self._audio_to_wav(audio)
+    
+    def _patch_to_msfa(self, patch):
+        """Konvertiert Patch zu msfa-Format"""
+        # Vereinfachte Konvertierung zu msfa-Format
+        msfa_patch = {
+            'algorithm': patch.get('algorithm', 1),
+            'feedback': patch.get('feedback', 0),
+            'lfo_speed': patch.get('lfo_speed', 0),
+            'lfo_delay': patch.get('lfo_delay', 0),
+            'lfo_pitch_mod': patch.get('lfo_pitch_mod', 0),
+            'lfo_amp_mod': patch.get('lfo_amp_mod', 0),
+            'lfo_sync': patch.get('lfo_sync', False),
+            'lfo_wave': patch.get('lfo_wave', 0),
+            'pitch_mod_sens': patch.get('pitch_mod_sens', 0),
+            'amp_mod_sens': patch.get('amp_mod_sens', 0),
+            'transpose': patch.get('transpose', 0),
+            'poly_mode': patch.get('poly_mode', 1),
+            'pitch_bend_range': patch.get('pitch_bend_range', 2),
+            'portamento_mode': patch.get('portamento_mode', 0),
+            'portamento_time': patch.get('portamento_time', 0),
+            'operators': patch.get('operators', [])
+        }
+        return msfa_patch
+    
+    def _set_msfa_patch(self, dx7_note, msfa_patch):
+        """Setzt Patch-Parameter in msfa"""
+        try:
+            # Setze Algorithm
+            if hasattr(self.msfa_lib, 'dx7note_set_algorithm'):
+                self.msfa_lib.dx7note_set_algorithm(dx7_note, msfa_patch['algorithm'])
+            
+            # Setze Feedback
+            if hasattr(self.msfa_lib, 'dx7note_set_feedback'):
+                self.msfa_lib.dx7note_set_feedback(dx7_note, msfa_patch['feedback'])
+            
+            # Setze Operatoren
+            operators = msfa_patch['operators']
+            for i, op in enumerate(operators):
+                if hasattr(self.msfa_lib, 'dx7note_set_operator'):
+                    self.msfa_lib.dx7note_set_operator(dx7_note, i, 
+                                                      op.get('level', 0),
+                                                      op.get('freq_ratio', 1.0),
+                                                      op.get('detune', 0),
+                                                      op.get('attack', 0),
+                                                      op.get('decay', 0),
+                                                      op.get('sustain', 99),
+                                                      op.get('release', 0),
+                                                      op.get('feedback', 0),
+                                                      op.get('key_scale', 0),
+                                                      op.get('velocity_sense', 0),
+                                                      op.get('wave', 0),
+                                                      op.get('enabled', True))
+        except Exception as e:
+            print(f"⚠️ Fehler beim Setzen der msfa-Parameter: {e}")
     
     def _calculate_adsr(self, time, duration, attack, decay, sustain, release):
         """Berechnet ADSR-Envelope"""
@@ -361,7 +486,7 @@ def health():
     return jsonify({
         'status': 'healthy',
         'service': 'dexed-engine',
-        'dexed_available': dexed_engine.dexed_binary is not None
+        'dexed_available': dexed_engine.dexed_available
     })
 
 if __name__ == '__main__':

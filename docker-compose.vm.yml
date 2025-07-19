@@ -69,3 +69,18 @@ services:
     environment:
       - DEXED_PORT=8081
     command: python3 /app/dexed_server.py 
+
+  mcp-server:
+    build:
+      context: .
+      dockerfile: Dockerfile.mcp
+    ports:
+      - "8082:8082"
+    volumes:
+      - ./src:/app/src
+      - ./output:/app/output
+    environment:
+      - MCP_PORT=8082
+      - IONOS_API_KEY=${IONOS_API_KEY}
+    depends_on:
+      - dexed-engine 

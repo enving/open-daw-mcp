@@ -1,0 +1,12 @@
+FROM python:3.12-slim
+
+# Install dependencies
+RUN pip install flask flask-cors requests
+
+# Copy MCP server
+COPY src/daw/dexed_mcp_server.py /app/dexed_mcp_server.py
+
+WORKDIR /app
+EXPOSE 8082
+
+CMD ["python3", "dexed_mcp_server.py"] 

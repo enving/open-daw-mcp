@@ -620,6 +620,409 @@ app.get('/api/dexed/health', async (req, res) => {
   }
 })
 
+// MusicXML zu Dexed Übersetzer API Endpunkte
+app.post('/api/translate/musicxml-to-dexed', async (req, res) => {
+  try {
+    const { musicxmlFile } = req.body
+    
+    if (!musicxmlFile) {
+      return res.status(400).json({
+        success: false,
+        message: 'MusicXML-Datei ist erforderlich'
+      })
+    }
+    
+    // Rufe Python-Übersetzer auf
+    const { spawn } = require('child_process')
+    const pythonProcess = spawn('python3', [
+      'src/daw/musicxml_to_dexed.py',
+      '--input', musicxmlFile,
+      '--output', 'output/dexed_patches.json'
+    ])
+    
+    let output = ''
+    let error = ''
+    
+    pythonProcess.stdout.on('data', (data) => {
+      output += data.toString()
+    })
+    
+    pythonProcess.stderr.on('data', (data) => {
+      error += data.toString()
+    })
+    
+    pythonProcess.on('close', (code) => {
+      if (code === 0) {
+        // Lese generierte Patches
+        const fs = require('fs')
+        try {
+          const patchesData = fs.readFileSync('output/dexed_patches.json', 'utf8')
+          const patches = JSON.parse(patchesData)
+          
+          res.json({
+            success: true,
+            message: 'MusicXML erfolgreich zu Dexed-Patches konvertiert',
+            inputFile: musicxmlFile,
+            outputFile: 'output/dexed_patches.json',
+            patches: patches,
+            patchCount: patches.length
+          })
+        } catch (readError) {
+          res.status(500).json({
+            success: false,
+            message: 'Fehler beim Lesen der Patches',
+            error: readError.message
+          })
+        }
+      } else {
+        res.status(500).json({
+          success: false,
+          message: 'Fehler beim Konvertieren',
+          error: error || 'Unbekannter Fehler'
+        })
+      }
+    })
+    
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Fehler beim Übersetzen',
+      error: error.message
+    })
+  }
+})
+
+app.post('/api/translate/generate-audio-from-musicxml', async (req, res) => {
+  try {
+    const { musicxmlFile, note = 60, velocity = 100, duration = 2.0 } = req.body
+    
+    if (!musicxmlFile) {
+      return res.status(400).json({
+        success: false,
+        message: 'MusicXML-Datei ist erforderlich'
+      })
+    }
+    
+    // 1. Konvertiere MusicXML zu Dexed-Patches
+    const { spawn } = require('child_process')
+    const pythonProcess = spawn('python3', [
+      'src/daw/musicxml_to_dexed.py',
+      '--input', musicxmlFile,
+      '--output', 'output/dexed_patches.json'
+    ])
+    
+    return new Promise((resolve, reject) => {
+      pythonProcess.on('close', async (code) => {
+        if (code === 0) {
+          try {
+            // 2. Lese Patches
+            const fs = require('fs')
+            const patchesData = fs.readFileSync('output/dexed_patches.json', 'utf8')
+            const patches = JSON.parse(patchesData)
+            
+            // 3. Generiere Audio für jedes Patch
+            const audioFiles = []
+            for (let i = 0; i < patches.length; i++) {
+              const patch = patches[i]
+              
+              // Rufe Dexed-API auf
+              const dexedResponse = await fetch('http://dexed-engine:8081/api/dexed/generate-audio', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                  patch: patch,
+                  note: note,
+                  velocity: velocity,
+                  duration: duration
+                })
+              })
+              
+              const dexedData = await dexedResponse.json()
+              
+              if (dexedData.success) {
+                audioFiles.push({
+                  patchName: patch.name,
+                  algorithm: patch.algorithm,
+                  filename: dexedData.filename,
+                  fileSize: dexedData.fileSize
+                })
+              }
+            }
+            
+            res.json({
+              success: true,
+              message: 'Audio aus MusicXML generiert',
+              inputFile: musicxmlFile,
+              patches: patches,
+              audioFiles: audioFiles,
+              patchCount: patches.length,
+              audioCount: audioFiles.length
+            })
+          } catch (error) {
+            res.status(500).json({
+              success: false,
+              message: 'Fehler beim Generieren des Audios',
+              error: error.message
+            })
+          }
+        } else {
+          res.status(500).json({
+            success: false,
+            message: 'Fehler beim Konvertieren von MusicXML',
+            error: 'Python-Prozess fehlgeschlagen'
+          })
+        }
+      })
+    })
+    
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Fehler beim Übersetzen',
+      error: error.message
+    })
+  }
+})
+
+app.get('/api/translate/instruments', (req, res) => {
+  try {
+    const instruments = [
+      { name: 'Flute', type: 'flute', description: 'Warme, weiche Flöten-Sounds', algorithm: 1 },
+      { name: 'Piano', type: 'piano', description: 'Klare, perkussive Piano-Sounds', algorithm: 5 },
+      { name: 'Violin', type: 'violin', description: 'Warme, expressive Streicher-Sounds', algorithm: 3 },
+      { name: 'Trumpet', type: 'trumpet', description: 'Brilliante, laute Brass-Sounds', algorithm: 2 },
+      { name: 'Saxophone', type: 'saxophone', description: 'Warme, expressive Sax-Sounds', algorithm: 4 },
+      { name: 'Bass', type: 'bass', description: 'Tiefe, kraftvolle Bass-Sounds', algorithm: 1 },
+      { name: 'Drums', type: 'drums', description: 'Perkussive Drum-Sounds', algorithm: 7 },
+      { name: 'Synth', type: 'synth', description: 'Moderne Synthesizer-Sounds', algorithm: 8 },
+      { name: 'Brass', type: 'brass', description: 'Kraftvolle Brass-Ensemble-Sounds', algorithm: 2 },
+      { name: 'Strings', type: 'strings', description: 'Warme String-Ensemble-Sounds', algorithm: 3 },
+      { name: 'Woodwind', type: 'woodwind', description: 'Warme Holzbläser-Sounds', algorithm: 1 },
+      { name: 'Percussion', type: 'percussion', description: 'Perkussive Effekt-Sounds', algorithm: 7 }
+    ]
+    
+    res.json({
+      success: true,
+      message: 'Verfügbare Instrumente geladen',
+      instruments: instruments
+    })
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Fehler beim Laden der Instrumente',
+      error: error.message
+    })
+  }
+})
+
+// LLM-basierter MCP-Server für Dexed-Steuerung
+app.post('/api/mcp/create-patch', async (req, res) => {
+  try {
+    const { description } = req.body
+    
+    if (!description) {
+      return res.status(400).json({
+        success: false,
+        message: 'Beschreibung ist erforderlich'
+      })
+    }
+    
+    // Rufe MCP-Server auf
+    const response = await fetch('http://mcp-server:8082/api/mcp/create-patch', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ description })
+    })
+    
+    const data = await response.json()
+    
+    if (data.success) {
+      res.json(data)
+    } else {
+      res.status(500).json(data)
+    }
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Fehler beim Erstellen des Patches',
+      error: error.message
+    })
+  }
+})
+
+app.post('/api/mcp/generate-audio', async (req, res) => {
+  try {
+    const { patch_id, note = 60, velocity = 100, duration = 2.0 } = req.body
+    
+    if (!patch_id) {
+      return res.status(400).json({
+        success: false,
+        message: 'Patch-ID ist erforderlich'
+      })
+    }
+    
+    // Rufe MCP-Server auf
+    const response = await fetch('http://mcp-server:8082/api/mcp/generate-audio', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ patch_id, note, velocity, duration })
+    })
+    
+    const data = await response.json()
+    
+    if (data.success) {
+      res.json(data)
+    } else {
+      res.status(500).json(data)
+    }
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Fehler beim Generieren des Audios',
+      error: error.message
+    })
+  }
+})
+
+app.get('/api/mcp/patches', async (req, res) => {
+  try {
+    // Rufe MCP-Server auf
+    const response = await fetch('http://mcp-server:8082/api/mcp/patches')
+    const data = await response.json()
+    
+    if (data.success) {
+      res.json(data)
+    } else {
+      res.status(500).json(data)
+    }
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Fehler beim Laden der Patches',
+      error: error.message
+    })
+  }
+})
+
+app.get('/api/mcp/patch/:patch_id', async (req, res) => {
+  try {
+    const { patch_id } = req.params
+    
+    // Rufe MCP-Server auf
+    const response = await fetch(`http://mcp-server:8082/api/mcp/patch/${patch_id}`)
+    const data = await response.json()
+    
+    if (data.success) {
+      res.json(data)
+    } else {
+      res.status(404).json(data)
+    }
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Fehler beim Laden des Patches',
+      error: error.message
+    })
+  }
+})
+
+// LLM-basierte MusicXML-zu-Dexed-Konvertierung
+app.post('/api/translate/llm-musicxml-to-dexed', async (req, res) => {
+  try {
+    const { musicxmlFile, instrumentDescriptions } = req.body
+    
+    if (!musicxmlFile) {
+      return res.status(400).json({
+        success: false,
+        message: 'MusicXML-Datei ist erforderlich'
+      })
+    }
+    
+    // 1. Parse MusicXML für Instrumente
+    const { spawn } = require('child_process')
+    const pythonProcess = spawn('python3', [
+      'src/daw/musicxml_to_dexed.py',
+      '--input', musicxmlFile,
+      '--output', 'output/instruments.json',
+      '--extract-only'
+    ])
+    
+    return new Promise((resolve, reject) => {
+      pythonProcess.on('close', async (code) => {
+        if (code === 0) {
+          try {
+            // 2. Lese extrahierte Instrumente
+            const fs = require('fs')
+            const instrumentsData = fs.readFileSync('output/instruments.json', 'utf8')
+            const instruments = JSON.parse(instrumentsData)
+            
+            // 3. Erstelle LLM-Patches für jedes Instrument
+            const patches = []
+            for (const instrument of instruments) {
+              const description = instrumentDescriptions?.[instrument.name] || 
+                               f"Erstelle einen {instrument.name}-Sound"
+              
+              // Rufe MCP-Server auf
+              const mcpResponse = await fetch('http://mcp-server:8082/api/mcp/create-patch', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ description })
+              })
+              
+              const mcpData = await mcpResponse.json()
+              
+              if (mcpData.success) {
+                patches.push({
+                  instrument: instrument.name,
+                  patch_id: mcpData.patch_id,
+                  patch: mcpData.patch
+                })
+              }
+            }
+            
+            res.json({
+              success: true,
+              message: 'LLM-basierte Patches erstellt',
+              inputFile: musicxmlFile,
+              instruments: instruments,
+              patches: patches,
+              instrumentCount: instruments.length,
+              patchCount: patches.length
+            })
+          } catch (error) {
+            res.status(500).json({
+              success: false,
+              message: 'Fehler beim Erstellen der LLM-Patches',
+              error: error.message
+            })
+          }
+        } else {
+          res.status(500).json({
+            success: false,
+            message: 'Fehler beim Extrahieren der Instrumente',
+            error: 'Python-Prozess fehlgeschlagen'
+          })
+        }
+      })
+    })
+    
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Fehler beim LLM-Übersetzen',
+      error: error.message
+    })
+  }
+})
+
 // Hilfsfunktionen für Audio-Generierung
 function generateAudioForStyle(style) {
   // Echte Instrumenten-Engine
