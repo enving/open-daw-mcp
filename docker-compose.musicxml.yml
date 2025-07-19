@@ -1,0 +1,19 @@
+version: '3.8'
+
+services:
+  musicxml-parser-api:
+    build:
+      context: .
+      dockerfile: Dockerfile.musicxml
+    ports:
+      - "8001:8001"  # API Port
+    volumes:
+      - ./output:/app/output
+      - ./projects:/app/projects
+    environment:
+      - PYTHONPATH=/app/src
+    restart: unless-stopped
+    command: python3 src/server/reaper_api.py
+
+volumes:
+  musicxml-data: 

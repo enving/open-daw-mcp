@@ -85,4 +85,4 @@ ENV/
 .dockerignore
 
 # Cloudflare
-.cloudflared/ 
+.cloudflared/ dexed/

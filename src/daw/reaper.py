@@ -24,6 +24,14 @@ except ImportError:
     REAPY_AVAILABLE = False
     logging.warning("ReaPy nicht verfügbar. Installiere mit: pip install python-reapy")
 
+# Headless Reaper Manager
+try:
+    from .reaper_headless import get_headless_reaper_manager
+    HEADLESS_AVAILABLE = True
+except ImportError:
+    HEADLESS_AVAILABLE = False
+    logging.warning("Headless Reaper Manager nicht verfügbar")
+
 logger = logging.getLogger(__name__)
 
 class ReaperState(Enum):
@@ -66,6 +74,10 @@ class ReaperIntegration:
         self.state = ReaperState.DISCONNECTED
         self.current_project = None
         self.tracks = {}
+        self.headless_manager = None
+        
+        if HEADLESS_AVAILABLE:
+            self.headless_manager = get_headless_reaper_manager()
         
         if REAPY_AVAILABLE:
             self._connect_to_reaper()
@@ -117,6 +129,17 @@ class ReaperIntegration:
                 logger.info("Erfolgreich mit Reaper verbunden")
             else:
                 logger.warning("Reaper läuft, aber API-Verbindung nicht möglich")
+                
+                # Versuche Headless Setup
+                if self.headless_manager:
+                    logger.info("Versuche Headless Reaper Setup...")
+                    if self.headless_manager.setup_headless_environment():
+                        # Warte kurz und versuche erneut zu verbinden
+                        time.sleep(5)
+                        self._connect_to_reaper()
+                    else:
+                        logger.error("Headless Setup fehlgeschlagen")
+                
                 # Trotzdem als verbunden markieren für grundlegende Funktionen
                 self.state = ReaperState.CONNECTED
                 
@@ -166,18 +189,51 @@ class ReaperIntegration:
             
             for part in parts:
                 part_id = part.get('id', 'unknown')
-                part_name = part.find('.//mx:part-name', ns)
+                
+                # Versuche verschiedene Namespaces für part-name
+                part_name = None
+                for ns_variant in namespaces:
+                    try:
+                        if ns_variant:
+                            part_name = part.find('.//mx:part-name', ns_variant)
+                        else:
+                            part_name = part.find('.//part-name')
+                        if part_name is not None:
+                            break
+                    except:
+                        continue
+                
                 track_name = part_name.text if part_name is not None else f"Track {part_id}"
                 
                 notes = []
                 current_time = 0
                 
-                # Parse Measures
-                measures = part.findall('.//mx:measure', ns)
+                # Parse Measures mit verschiedenen Namespaces
+                measures = []
+                for ns_variant in namespaces:
+                    try:
+                        if ns_variant:
+                            measures = part.findall('.//mx:measure', ns_variant)
+                        else:
+                            measures = part.findall('.//measure')
+                        if measures:
+                            break
+                    except:
+                        continue
                 
                 for measure in measures:
-                    # Parse Notes in diesem Measure
-                    note_elements = measure.findall('.//mx:note', ns)
+                    # Parse Notes mit verschiedenen Namespaces
+                    note_elements = []
+                    for ns_variant in namespaces:
+                        try:
+                            if ns_variant:
+                                note_elements = measure.findall('.//mx:note', ns_variant)
+                            else:
+                                note_elements = measure.findall('.//note')
+                            if note_elements:
+                                break
+                        except:
+                            continue
                     
                     for note_elem in note_elements:
                         note = self._parse_note_element(note_elem, current_time)
@@ -204,13 +260,38 @@ class ReaperIntegration:
     def _parse_note_element(self, note_elem, start_time: int) -> Optional[MusicXmlNote]:
         """Parst ein einzelnes Note-Element"""
         try:
-            # Pitch
-            pitch_elem = note_elem.find('.//mx:pitch')
+            # Pitch - versuche verschiedene Namespaces
+            pitch_elem = None
+            for ns_variant in [{'mx': 'http://www.musicxml.org/ns/partwise'}, {}]:
+                try:
+                    if ns_variant:
+                        pitch_elem = note_elem.find('.//mx:pitch', ns_variant)
+                    else:
+                        pitch_elem = note_elem.find('.//pitch')
+                    if pitch_elem is not None:
+                        break
+                except:
+                    continue
+            
             if pitch_elem is None:
                 return None  # Rest oder andere Elemente
             
-            step_elem = pitch_elem.find('mx:step')
-            octave_elem = pitch_elem.find('mx:octave')
+            # Step und Octave
+            step_elem = None
+            octave_elem = None
+            
+            for ns_variant in [{'mx': 'http://www.musicxml.org/ns/partwise'}, {}]:
+                try:
+                    if ns_variant:
+                        step_elem = pitch_elem.find('mx:step', ns_variant)
+                        octave_elem = pitch_elem.find('mx:octave', ns_variant)
+                    else:
+                        step_elem = pitch_elem.find('step')
+                        octave_elem = pitch_elem.find('octave')
+                    if step_elem is not None and octave_elem is not None:
+                        break
+                except:
+                    continue
             
             if step_elem is None or octave_elem is None:
                 return None
@@ -219,7 +300,18 @@ class ReaperIntegration:
             octave = int(octave_elem.text)
             
             # Check für Accidentals
-            accidental_elem = pitch_elem.find('mx:alter')
+            accidental_elem = None
+            for ns_variant in [{'mx': 'http://www.musicxml.org/ns/partwise'}, {}]:
+                try:
+                    if ns_variant:
+                        accidental_elem = pitch_elem.find('mx:alter', ns_variant)
+                    else:
+                        accidental_elem = pitch_elem.find('alter')
+                    if accidental_elem is not None:
+                        break
+                except:
+                    continue
+            
             if accidental_elem is not None:
                 alter = int(accidental_elem.text)
                 if alter == 1:
@@ -230,7 +322,18 @@ class ReaperIntegration:
             pitch = f"{step}{octave}"
             
             # Duration
-            duration_elem = note_elem.find('mx:duration')
+            duration_elem = None
+            for ns_variant in [{'mx': 'http://www.musicxml.org/ns/partwise'}, {}]:
+                try:
+                    if ns_variant:
+                        duration_elem = note_elem.find('mx:duration', ns_variant)
+                    else:
+                        duration_elem = note_elem.find('duration')
+                    if duration_elem is not None:
+                        break
+                except:
+                    continue
+            
             duration = int(duration_elem.text) if duration_elem is not None else 480
             
             # Velocity (default)

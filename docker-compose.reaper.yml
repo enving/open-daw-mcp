@@ -33,7 +33,7 @@ services:
     depends_on:
       - reaper-headless
     restart: unless-stopped
-    command: python3 /app/src/server/reaper_api.py
+    command: python3 /app/src/server/reaper_api_simple.py
 
 volumes:
   reaper-config: 

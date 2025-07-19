@@ -1,57 +1,71 @@
 version: '3.8'
 
 services:
-  # DAW HTTP Server für VM-Produktion (MusicXML Version)
   daw-server:
     build:
       context: .
       dockerfile: Dockerfile.dev
     ports:
       - "3002:3002"
-    environment:
-      - NODE_ENV=production
-      - PORT=3002
     volumes:
+      - ./src:/app/src
       - ./output:/app/output
-    command: ["node", "src/server/index.js"]
-    restart: unless-stopped
-
-  # OpenWebUI für VM-Produktion
-  openwebui:
-    image: ghcr.io/open-webui/open-webui:main
-    ports:
-      - "3000:8080"
+      - ./dexed:/app/dexed
     environment:
-      - WEBUI_SECRET_KEY=your-secret-key-here
-      - DEFAULT_MODELS=openai/gpt-4
-      - ENABLE_SIGNUP=true
-      - ENABLE_LOGIN_FORM=true
-      - CREATE_ADMIN_USER=true
-      - ADMIN_USERNAME=admin
-      - ADMIN_PASSWORD=admin123
-      - DISABLE_SIGNUP=false
-    volumes:
-      - openwebui_data:/app/backend/data
-    restart: unless-stopped
-
-  # Ollama für VM-Produktion
-  ollama:
-    image: ollama/ollama:latest
-    ports:
-      - "11434:11434"
-    volumes:
-      - ollama_data:/root/.ollama
-    restart: unless-stopped
-
-  # Cloudflare Tunnel für VM-Produktion
-  cloudflared:
-    image: cloudflare/cloudflared:latest
-    command: tunnel --no-autoupdate run --token eyJhIjoiMDRmZDJmZDlkNGYwYWY2ZmRmYWE0MDUwMjlmYmJmMWIiLCJ0IjoiM2QzMDQ3YzctNTE2NC00ODhmLTllMjEtOWMwMGJhMzA5ZWFmIiwicyI6Ik56SXlObVppWWpNdE56QmpNeTAwTW1Sa0xUazJaR1F0WTJFek9EQm1PV1ZsTkRFeSJ9
-    restart: unless-stopped
+      - NODE_ENV=development
     depends_on:
-      - daw-server
-      - openwebui
+      - reaper-api
+      - dexed-engine
 
-volumes:
-  ollama_data:
-  openwebui_data: 
+  reaper-api:
+    build:
+      context: .
+      dockerfile: Dockerfile.reaper
+    ports:
+      - "9010:8001"
+    volumes:
+      - ./src:/app/src
+      - ./output:/app/output
+      - ./reaper_linux_x86_64.tar.xz:/app/reaper_linux_x86_64.tar.xz
+      - ./reaper.ini:/app/reaper.ini
+    environment:
+      - REAPER_PORT=8001
+    command: python3 src/server/reaper_api_simple.py
+
+  reaper-headless:
+    build:
+      context: .
+      dockerfile: Dockerfile.reaper
+    volumes:
+      - ./src:/app/src
+      - ./output:/app/output
+      - ./reaper_linux_x86_64.tar.xz:/app/reaper_linux_x86_64.tar.xz
+      - ./reaper.ini:/app/reaper.ini
+    environment:
+      - REAPER_PORT=8080
+    command: /usr/local/bin/start-reaper.sh
+
+  musicxml-parser-api:
+    build:
+      context: .
+      dockerfile: Dockerfile.musicxml
+    ports:
+      - "8001:8001"
+    volumes:
+      - ./src:/app/src
+      - ./output:/app/output
+    environment:
+      - PARSER_PORT=8001
+
+  dexed-engine:
+    build:
+      context: .
+      dockerfile: Dockerfile.dexed
+    ports:
+      - "8081:8081"
+    volumes:
+      - ./dexed:/app/dexed
+      - ./output:/app/output
+    environment:
+      - DEXED_PORT=8081
+    command: python3 /app/dexed_server.py 
