@@ -1,15 +1,5 @@
 
 
-WildFX-basierte Reaper Headless Integration - ERFOLGREICH!
-✅ Was jetzt funktioniert:
-✅ Docker-Container laufen stabil - Keine Neustarts
-✅ Reaper läuft im Headless-Modus - PID im Container
-✅ JACK Audio Server läuft - Dummy-Modus für Headless-Betrieb
-✅ FastAPI läuft - Port 9010 erreichbar
-✅ Reaper-Verbindung funktioniert - "Reaper verbunden via Project API"
-✅ Python-Multipart installiert - File-Uploads möglich
-✅ WildFX-Plugin-Integration implementiert - Professionelle Audio-Effekte
-
 # Open DAW MCP - API-native Musikproduktion
 
 ## 🚀 **AKTUELLER STAND - Vollständige System-Architektur**
@@ -27,7 +17,6 @@ WildFX-basierte Reaper Headless Integration - ERFOLGREICH!
 - ✅ **MusicXML-Server** (Port 8001) - MusicXML Parser und Generator
 - ✅ **MIDI-Server** - MIDI-Export und -Verarbeitung
 - ✅ **Dexed FM-Synth** (Port 8081) - Echte FM-Synthese-Engine
-- ✅ **WildFX Integration** (Port 9010) - Professionelle Audio-Effekte
 
 #### **3. Vollständige Pipeline:**
 ```
@@ -39,15 +28,15 @@ MusicXML-Server (Port 8001)
     ↓
 MIDI-Server
     ↓
-Dexed FM-Synth (Port 8081) / WildFX (Port 9010)
-    ↓s
+Dexed FM-Synth (Port 8081)
+    ↓
 Audio Output
 ```
 
 #### **4. Erweiterte MIDI-Konsumenten:**
 - ✅ **Dexed FM-Synth** - Echte FM-Synthese mit msfa-Bibliothek
-- ✅ **Headless Sampler** - Drum-Beats (in Entwicklung)
-- ✅ **Weitere MIDI-Konsumenten** - Erweiterbare Architektur
+- 🔄 **Headless Sampler** - Ihr Kumpel baut Drum-Beats (in Entwicklung)
+- 🔄 **Weitere MIDI-Konsumenten** - Erweiterbare Architektur
 
 ### 🎛️ **Technische Features:**
 
@@ -62,7 +51,6 @@ Audio Output
 - ✅ **MusicXML-Generierung** - LLM → MusicXML Pipeline
 - ✅ **MIDI-Export** - MusicXML → MIDI Konvertierung
 - ✅ **Dexed-Integration** - MIDI → FM-Synthese
-- ✅ **WildFX-Integration** - Audio-Effekte und -Verarbeitung
 
 #### **Dexed FM-Synth:**
 - ✅ **32 DX7-Algorithmen** - Alle originalen FM-Algorithmen
@@ -70,13 +58,6 @@ Audio Output
 - ✅ **Echte msfa-Bibliothek** - Keine Simulation, echte FM-Synthese
 - ✅ **WAV-Export** - Funktionierender Audio-Export
 - ✅ **Patch-Management** - JSON-basierte Patch-Erstellung
-
-#### **WildFX Integration:**
-- ✅ **Reaper Headless** - Läuft im Container mit PID
-- ✅ **JACK Audio Server** - Dummy-Modus für Headless-Betrieb
-- ✅ **FastAPI** - Port 9010 erreichbar
-- ✅ **Professionelle Audio-Effekte** - Reverb, Delay, Compression
-- ✅ **Plugin-Integration** - WildFX-Plugins verfügbar
 
 ### 🎯 **Aktueller Workflow:**
 
@@ -104,17 +85,6 @@ Dexed FM-Synth (Port 8081)
 Audio-Generierung
 ```
 
-#### **3. Audio-Verarbeitung:**
-```
-Dexed Audio Output
-    ↓
-WildFX Integration (Port 9010)
-    ↓
-Professionelle Audio-Effekte
-    ↓
-Final Audio Output
-```
-
 ### 🔧 **Was noch entwickelt wird:**
 
 #### **1. Headless Sampler (Ihr Kumpel):**
@@ -125,24 +95,33 @@ Final Audio Output
 #### **2. Erweiterte MIDI-Konsumenten:**
 - 🔄 **Weitere Synthesizer** - Erweiterbare Architektur
 - 🔄 **Drum-Machines** - Verschiedene Beat-Generatoren
-- 🔄 **Effekt-Prozessoren** - Audio-Effekt-Ketten
+- 🔄 **Audio-Effekt-Prozessoren** - Reverb, Delay, Compression
 
-### 🚀 **Nächste Schritte:**
+### 🚀 **NÄCHSTE SCHRITTE - Konkrete Aufgaben:**
 
 #### **Priorität 1: Headless Sampler Integration**
-1. **MIDI-Konsument** für Drum-Beats
-2. **Sample-basierte Synthese** integrieren
-3. **Tool-Server** erweitern für Sampler
+1. **MIDI-Konsument für Drum-Beats** - Ihr Kumpel integriert den Sampler
+2. **Tool-Server erweitern** - Neue Endpunkte für Sampler
+3. **Sample-basierte Synthese** - Drum-Sounds und Beats
+4. **Docker-Integration** - Sampler als separater Service
 
-#### **Priorität 2: Erweiterte Features**
-1. **Weitere MIDI-Konsumenten** anbinden
-2. **Audio-Effekt-Ketten** erweitern
-3. **Multi-Track-Recording** implementieren
+#### **Priorität 2: Audio-Effekte ohne Reaper**
+1. **Python-basierte Audio-Effekte** - Reverb, Delay, Compression
+2. **Audio-Effekt-Server** - Separater Service für Effekte
+3. **Tool-Server Integration** - Effekte in die Pipeline einbinden
+4. **Real-time Audio-Verarbeitung** - Live-Effekte
 
-#### **Priorität 3: Benutzer-Experience**
-1. **OpenWebUI** erweitern
-2. **Real-time Audio-Preview** hinzufügen
-3. **Patch-Bibliothek** implementieren
+#### **Priorität 3: Erweiterte Features**
+1. **Weitere MIDI-Konsumenten** - Mehr Synthesizer anbinden
+2. **Multi-Track-Recording** - Mehrere Spuren gleichzeitig
+3. **Real-time Audio-Preview** - Live-Audio-Vorschau
+4. **Patch-Bibliothek** - Speichern und Laden von Patches
+
+#### **Priorität 4: Benutzer-Experience**
+1. **OpenWebUI erweitern** - Mehr Musik-Tools
+2. **Audio-Player** - Abspielen der generierten Musik
+3. **Download-Funktion** - WAV/MP3 Export
+4. **Projekt-Management** - Speichern von Musik-Projekten
 
 ### 📊 **System-Status:**
 
@@ -152,19 +131,35 @@ Final Audio Output
 - ✅ **MusicXML-Server** - MusicXML-Generierung und -Parsing
 - ✅ **MIDI-Server** - MIDI-Export und -Verarbeitung
 - ✅ **Dexed FM-Synth** - Echte FM-Synthese
-- ✅ **WildFX Integration** - Professionelle Audio-Effekte
 - ✅ **Docker-Infrastruktur** - Alle Services laufen stabil
 
 #### **🔄 In Entwicklung:**
-- 🔄 **Headless Sampler** - Drum-Beat-Generierung
+- 🔄 **Headless Sampler** - Drum-Beat-Generierung (Ihr Kumpel)
+- 🔄 **Audio-Effekte** - Python-basierte Effekte ohne Reaper
 - 🔄 **Erweiterte MIDI-Konsumenten** - Weitere Synthesizer
-- 🔄 **Multi-Track-Recording** - Mehrere Spuren
 
 #### **📋 Geplant:**
 - 📋 **Real-time Audio-Preview** - Live-Audio-Vorschau
 - 📋 **Patch-Bibliothek** - Speichern und Laden von Patches
-- 📋 **Erweiterte Audio-Effekte** - Mehr Effekt-Optionen
+- 📋 **Multi-Track-Recording** - Mehrere Spuren
+
+### 🎯 **Konkrete nächste Aufgaben:**
+
+#### **Diese Woche:**
+1. **Headless Sampler** - Integration in Tool-Server
+2. **Audio-Effekte** - Python-basierte Effekte entwickeln
+3. **Docker-Compose** - Sampler und Effekte hinzufügen
+
+#### **Nächste Woche:**
+1. **Multi-Track-Recording** - Mehrere Spuren implementieren
+2. **Real-time Audio-Preview** - Live-Audio-Vorschau
+3. **OpenWebUI erweitern** - Mehr Musik-Tools
+
+#### **Langfristig:**
+1. **Patch-Bibliothek** - Speichern und Laden von Patches
+2. **Projekt-Management** - Musik-Projekte verwalten
+3. **Weitere MIDI-Konsumenten** - Erweiterbare Architektur
 
 ---
 
-**🎯 FAZIT: Das System ist bereits viel weiter entwickelt als ursprünglich beschrieben! OpenWebUI läuft live, die Tool-Server-Architektur funktioniert, und die Pipeline von LLM → MusicXML → MIDI → Dexed/WildFX ist bereits implementiert. Der Headless Sampler ist die nächste wichtige Erweiterung!**
+**🎯 FAZIT: Reaper ist raus! Das System läuft bereits sehr gut mit OpenWebUI, Tool-Server, MusicXML, MIDI und Dexed. Die nächsten Schritte sind Headless Sampler Integration und Python-basierte Audio-Effekte ohne Reaper.**

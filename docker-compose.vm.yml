@@ -4,58 +4,16 @@ services:
   daw-server:
     build:
       context: .
-      dockerfile: Dockerfile.dev
+      dockerfile: Dockerfile
     ports:
       - "3002:3002"
-    volumes:
-      - ./src:/app/src
-      - ./output:/app/output
-      - ./dexed:/app/dexed
     environment:
-      - NODE_ENV=development
+      - NODE_ENV=production
+    volumes:
+      - ./output:/app/output
     depends_on:
-      - reaper-api
       - dexed-engine
-
-  reaper-api:
-    build:
-      context: .
-      dockerfile: Dockerfile.reaper
-    ports:
-      - "9010:8001"
-    volumes:
-      - ./src:/app/src
-      - ./output:/app/output
-      - ./reaper_linux_x86_64.tar.xz:/app/reaper_linux_x86_64.tar.xz
-      - ./reaper.ini:/app/reaper.ini
-    environment:
-      - REAPER_PORT=8001
-    command: python3 src/server/reaper_api_simple.py
-
-  reaper-headless:
-    build:
-      context: .
-      dockerfile: Dockerfile.reaper
-    volumes:
-      - ./src:/app/src
-      - ./output:/app/output
-      - ./reaper_linux_x86_64.tar.xz:/app/reaper_linux_x86_64.tar.xz
-      - ./reaper.ini:/app/reaper.ini
-    environment:
-      - REAPER_PORT=8080
-    command: /usr/local/bin/start-reaper.sh
-
-  musicxml-parser-api:
-    build:
-      context: .
-      dockerfile: Dockerfile.musicxml
-    ports:
-      - "8001:8001"
-    volumes:
-      - ./src:/app/src
-      - ./output:/app/output
-    environment:
-      - PARSER_PORT=8001
+      - musicxml-parser-api
 
   dexed-engine:
     build:
@@ -64,23 +22,26 @@ services:
     ports:
       - "8081:8081"
     volumes:
-      - ./dexed:/app/dexed
       - ./output:/app/output
-    environment:
-      - DEXED_PORT=8081
-    command: python3 /app/dexed_server.py 
+
+  musicxml-parser-api:
+    build:
+      context: .
+      dockerfile: Dockerfile.musicxml
+    ports:
+      - "8001:8001"
+    volumes:
+      - ./output:/app/output
 
   mcp-server:
     build:
       context: .
       dockerfile: Dockerfile.mcp
     ports:
-      - "8082:8082"
-    volumes:
-      - ./src:/app/src
-      - ./output:/app/output
+      - "3001:3001"
     environment:
-      - MCP_PORT=8082
-      - IONOS_API_KEY=${IONOS_API_KEY}
+      - IONOS_API_TOKEN=${IONOS_API_TOKEN}
+    volumes:
+      - ./output:/app/output
     depends_on:
-      - dexed-engine 
+      - daw-server 
