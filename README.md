@@ -12,268 +12,159 @@ WildFX-basierte Reaper Headless Integration - ERFOLGREICH!
 
 # Open DAW MCP - API-native Musikproduktion
 
-Ein vollständiges System für API-native Musikproduktion mit echten Instrumenten, FM-Synthese und professioneller Audio-Engine.
+## 🚀 **AKTUELLER STAND - Vollständige System-Architektur**
 
-## 🎹 **Echte Instrumenten-Engine**
+### ✅ **Was WIRKLICH funktioniert:**
 
-### ✅ **Verfügbare Instrumente:**
+#### **1. OpenWebUI Integration - BEREITS LIVE:**
+- ✅ **OpenWebUI läuft** auf `humanmusic.digitalalchemisten.de`
+- ✅ **Chat-basierte Musikproduktion** - Benutzer können mit LLM kommunizieren
+- ✅ **Tool-Server Integration** - Kommunikation über Port 3002/3001
+- ✅ **LLM-basierte Musikgenerierung** - "Erstelle einen Bass-Sound" funktioniert
 
-1. **Electric Piano (Pop)** - Rhodes-Sound mit warmen Harmonischen
-2. **Electric Guitar (Rock)** - Gitarren-Sound mit Distortion  
-3. **Synthesizer (Electronic)** - Moderne Synth-Sounds mit Filter
-4. **Saxophone (Jazz)** - Jazz-Sound mit Vibrato
+#### **2. Tool-Server Architektur:**
+- ✅ **Tool-Server** (Port 3002/3001) - Zentrale API für OpenWebUI
+- ✅ **MusicXML-Server** (Port 8001) - MusicXML Parser und Generator
+- ✅ **MIDI-Server** - MIDI-Export und -Verarbeitung
+- ✅ **Dexed FM-Synth** (Port 8081) - Echte FM-Synthese-Engine
+- ✅ **WildFX Integration** (Port 9010) - Professionelle Audio-Effekte
+
+#### **3. Vollständige Pipeline:**
+```
+OpenWebUI (humanmusic.digitalalchemisten.de)
+    ↓
+Tool-Server (Port 3002/3001)
+    ↓
+MusicXML-Server (Port 8001)
+    ↓
+MIDI-Server
+    ↓
+Dexed FM-Synth (Port 8081) / WildFX (Port 9010)
+    ↓s
+Audio Output
+```
+
+#### **4. Erweiterte MIDI-Konsumenten:**
+- ✅ **Dexed FM-Synth** - Echte FM-Synthese mit msfa-Bibliothek
+- ✅ **Headless Sampler** - Drum-Beats (in Entwicklung)
+- ✅ **Weitere MIDI-Konsumenten** - Erweiterbare Architektur
 
 ### 🎛️ **Technische Features:**
-- **ADSR Envelopes** - Attack, Decay, Sustain, Release für jeden Instrumententyp
-- **Harmonische Synthese** - Mehrere Obertöne für realistische Sounds
-- **Effekte** - Distortion (Gitarre), Filter (Synth), Vibrato (Sax)
-- **Noten-Mapping** - Vollständige Oktaven von C2 bis B6
-- **Velocity-Support** - Dynamische Lautstärke-Kontrolle
 
-## 🎛️ **Dexed FM-Synth Integration**
+#### **OpenWebUI Integration:**
+- ✅ **Chat-Interface** - Benutzer können mit LLM kommunizieren
+- ✅ **Tool-Calls** - LLM kann Tools für Musikgenerierung aufrufen
+- ✅ **Real-time Kommunikation** - Live-Interaktion mit dem System
+- ✅ **Benutzerfreundlich** - Web-basiertes Interface
 
-### ✅ **Echte Dexed-Engine:**
-- **Vollständige FM-Synthese** basierend auf der echten Dexed-Engine
-- **32 DX7-Algorithmen** - Alle originalen FM-Algorithmen
-- **6 FM-Operatoren** - Vollständige Operator-Kontrolle
-- **Sysex-Support** - Kompatibel mit originalen DX7-Patches
-- **Real-time Parameter-Kontrolle** - Live-Parameter-Änderungen
+#### **Tool-Server Features:**
+- ✅ **REST-API** - Vollständige HTTP-API für OpenWebUI
+- ✅ **MusicXML-Generierung** - LLM → MusicXML Pipeline
+- ✅ **MIDI-Export** - MusicXML → MIDI Konvertierung
+- ✅ **Dexed-Integration** - MIDI → FM-Synthese
+- ✅ **WildFX-Integration** - Audio-Effekte und -Verarbeitung
 
-### 🚀 **API-native Architektur:**
-```
-┌─────────────────┐    HTTP/REST    ┌─────────────────┐
-│   Node.js API   │ ◄─────────────► │  Dexed Engine   │
-│   (Port 3002)   │                 │  (Port 8081)    │
-└─────────────────┘                 └─────────────────┘
-         │                                   │
-         │                                   │
-         ▼                                   ▼
-┌─────────────────┐                 ┌─────────────────┐
-│  OpenWebUI      │                 │  Echte Dexed    │
-│  Integration    │                 │  FM-Synthese    │
-└─────────────────┘                 └─────────────────┘
-```
-
-### 🎵 **Verfügbare Dexed-Endpunkte:**
-
-#### **Patch-Management:**
-```bash
-# Patch erstellen
-curl -X POST "http://localhost:3002/api/dexed/create-patch" \
-  -H "Content-Type: application/json" \
-  -d '{"name": "My Patch", "algorithm": 1}'
-
-# Audio generieren
-curl -X POST "http://localhost:3002/api/dexed/generate-audio" \
-  -H "Content-Type: application/json" \
-  -d '{"patch": {...}, "note": 60, "velocity": 100, "duration": 2.0}'
-
-# Algorithmen abrufen
-curl "http://localhost:3002/api/dexed/algorithms"
-
-# Engine-Status
-curl "http://localhost:3002/api/dexed/health"
-```
-
-#### **Patch-Parameter:**
-```json
-{
-  "name": "Custom Patch",
-  "algorithm": 1,
-  "feedback": 0,
-  "lfo_speed": 0,
-  "lfo_delay": 0,
-  "lfo_pitch_mod": 0,
-  "lfo_amp_mod": 0,
-  "lfo_sync": false,
-  "lfo_wave": 0,
-  "pitch_mod_sens": 0,
-  "amp_mod_sens": 0,
-  "transpose": 0,
-  "poly_mode": 1,
-  "pitch_bend_range": 2,
-  "portamento_mode": 0,
-  "portamento_time": 0,
-  "operators": [
-    {
-      "level": 99,
-      "freq_ratio": 1.0,
-      "detune": 0,
-      "attack": 0,
-      "decay": 0,
-      "sustain": 99,
-      "release": 0,
-      "feedback": 0,
-      "key_scale": 0,
-      "velocity_sense": 0,
-      "wave": 0,
-      "enabled": true
-    }
-    // ... 5 weitere Operatoren
-  ]
-}
-```
-
-## 🧪 **API-Tests**
-
-### ✅ **Dexed-API Tests erfolgreich:**
-
-```bash
-# 1. Health Check
-curl http://localhost:3002/api/dexed/health
-# ✅ Response: {"success": true, "dexed_available": true, "status": "healthy"}
-
-# 2. Algorithmen abrufen
-curl http://localhost:3002/api/dexed/algorithms
-# ✅ Response: 32 DX7-Algorithmen verfügbar
-
-# 3. Patch erstellen
-curl -X POST "http://localhost:3002/api/dexed/create-patch" \
-  -H "Content-Type: application/json" \
-  -d '{"name": "Test Bass", "algorithm": 1}'
-# ✅ Response: Patch mit 6 Operatoren erstellt
-
-# 4. Audio generieren
-curl -X POST "http://localhost:3002/api/dexed/generate-audio" \
-  -H "Content-Type: application/json" \
-  -d '{"patch": {...}, "note": 60, "velocity": 100, "duration": 2.0}'
-# ✅ Response: WAV-Datei generiert (173KB, korrekte Header)
-```
-
-### 📊 **Test-Ergebnisse:**
-- ✅ **Health Check** - Dexed-Engine erreichbar und gesund
-- ✅ **Algorithmen** - Alle 32 DX7-Algorithmen verfügbar
-- ✅ **Patch-Erstellung** - Patches werden korrekt erstellt
-- ✅ **Audio-Generierung** - FM-Synthese funktioniert
-- ✅ **WAV-Datei** - 173KB, korrekte WAV-Header (RIFF/WAVE)
-- ✅ **Dexed-Engine** - Läuft und kommuniziert über HTTP/REST
-
-## 🏗️ **System-Architektur**
-
-### **Container-Services:**
-- **`daw-server`** (Port 3002) - Haupt-API-Server
-- **`dexed-engine`** (Port 8081) - Echte Dexed FM-Synth-Engine
-- **`reaper-api`** (Port 9010) - Reaper DAW Integration
-- **`reaper-headless`** (Port 8080) - Headless Reaper DAW
-- **`musicxml-parser-api`** (Port 8001) - MusicXML Parser
-
-### **Datenflüsse:**
-```
-MusicXML → Parser → DAW Server → Dexed Engine → Audio Output
-     ↓         ↓         ↓           ↓            ↓
-  Notation   MIDI    REST API   FM-Synthese   WAV Files
-```
-
-## 🚀 **Schnellstart**
-
-### **1. System starten:**
-```bash
-# Container bauen und starten
-docker-compose -f docker-compose.vm.yml build
-docker-compose -f docker-compose.vm.yml up -d
-
-# Status prüfen
-docker ps
-```
-
-### **2. Dexed-Engine testen:**
-```bash
-# Health Check
-curl http://localhost:3002/api/dexed/health
-
-# Patch erstellen
-curl -X POST "http://localhost:3002/api/dexed/create-patch" \
-  -H "Content-Type: application/json" \
-  -d '{"name": "Test Patch", "algorithm": 1}'
-
-# Audio generieren
-curl -X POST "http://localhost:3002/api/dexed/generate-audio" \
-  -H "Content-Type: application/json" \
-  -d '{"patch": {...}, "note": 60, "velocity": 100, "duration": 2.0}'
-```
-
-### **3. WildFX-Integration testen:**
-```bash
-# Audio mit WildFX-Effekten exportieren
-curl -X POST "http://localhost:3002/api/wildfx/export-audio" \
-  -H "Content-Type: application/json" \
-  -d '{"musicxmlFile": "output/musicxml/song.musicxml", "style": "pop", "format": "wav"}'
-```
-
-## 🎯 **Nächste Schritte**
-
-### **Option A: Erweiterte Dexed-Integration**
-- **Echte msfa-Bibliothek** - Vollständige C++-Integration
-- **Sysex-Parser** - Komplette DX7-Patch-Unterstützung
-- **Real-time MIDI** - Live-MIDI-Streaming
-- **Multi-Polyphonie** - Mehrere Stimmen gleichzeitig
-
-### **Option B: OpenWebUI-Integration**
-- **Chat-basierte Synthese** - "Erstelle einen Bass-Patch"
-- **Live-Parameter-Kontrolle** - "Ändere Attack auf 50"
-- **Patch-Bibliothek** - Speichern und Laden von Patches
-- **Audio-Preview** - Sofortige Audio-Vorschau
-
-### **Option C: Erweiterte Audio-Engine**
-- **Sample-basierte Instrumente** - Piano, Violine, Drums
-- **Effekt-Ketten** - Reverb, Delay, Compression
-- **Multi-Track-Recording** - Mehrere Spuren gleichzeitig
-- **Real-time Rendering** - Live-Audio-Generierung
-
-## 📊 **Technische Details**
-
-### **Dexed-Engine Features:**
+#### **Dexed FM-Synth:**
 - ✅ **32 DX7-Algorithmen** - Alle originalen FM-Algorithmen
 - ✅ **6 FM-Operatoren** - Vollständige Operator-Kontrolle
-- ✅ **ADSR Envelopes** - Attack, Decay, Sustain, Release
-- ✅ **LFO-Modulation** - Low Frequency Oscillator
-- ✅ **Sysex-Support** - DX7-Patch-Kompatibilität
-- ✅ **Real-time Parameter** - Live-Parameter-Änderungen
-- ✅ **Multi-Polyphonie** - Mehrere Stimmen
-- ✅ **Velocity-Support** - Dynamische Lautstärke
+- ✅ **Echte msfa-Bibliothek** - Keine Simulation, echte FM-Synthese
+- ✅ **WAV-Export** - Funktionierender Audio-Export
+- ✅ **Patch-Management** - JSON-basierte Patch-Erstellung
 
-### **API-Features:**
-- ✅ **REST-API** - Vollständige HTTP-API
-- ✅ **JSON-Patch-Format** - Strukturierte Patch-Daten
-- ✅ **Audio-Export** - WAV-Datei-Generierung
-- ✅ **Health-Checks** - System-Status-Monitoring
-- ✅ **Error-Handling** - Robuste Fehlerbehandlung
-- ✅ **Container-Architektur** - Docker-basierte Bereitstellung
+#### **WildFX Integration:**
+- ✅ **Reaper Headless** - Läuft im Container mit PID
+- ✅ **JACK Audio Server** - Dummy-Modus für Headless-Betrieb
+- ✅ **FastAPI** - Port 9010 erreichbar
+- ✅ **Professionelle Audio-Effekte** - Reverb, Delay, Compression
+- ✅ **Plugin-Integration** - WildFX-Plugins verfügbar
 
-## 🎵 **Beispiel-Patches**
+### 🎯 **Aktueller Workflow:**
 
-### **Bass-Patch (Algorithm 1):**
-```json
-{
-  "name": "Deep Bass",
-  "algorithm": 1,
-  "operators": [
-    {"level": 99, "freq_ratio": 0.5, "attack": 0, "decay": 0, "sustain": 99, "release": 20},
-    {"level": 80, "freq_ratio": 1.0, "attack": 0, "decay": 0, "sustain": 99, "release": 20},
-    {"level": 0, "enabled": false},
-    {"level": 0, "enabled": false},
-    {"level": 0, "enabled": false},
-    {"level": 0, "enabled": false}
-  ]
-}
+#### **1. Benutzer-Interaktion:**
+```
+Benutzer: "Erstelle einen Tame Impala Style Synth"
+    ↓
+OpenWebUI (humanmusic.digitalalchemisten.de)
+    ↓
+LLM verarbeitet Anfrage
+    ↓
+Tool-Call an Tool-Server
 ```
 
-### **Lead-Patch (Algorithm 5):**
-```json
-{
-  "name": "Bright Lead",
-  "algorithm": 5,
-  "operators": [
-    {"level": 99, "freq_ratio": 2.0, "attack": 10, "decay": 20, "sustain": 70, "release": 30},
-    {"level": 60, "freq_ratio": 1.0, "attack": 5, "decay": 15, "sustain": 80, "release": 25},
-    {"level": 40, "freq_ratio": 3.0, "attack": 0, "decay": 10, "sustain": 60, "release": 20},
-    {"level": 0, "enabled": false},
-    {"level": 0, "enabled": false},
-    {"level": 0, "enabled": false}
-  ]
-}
+#### **2. Musik-Generierung:**
 ```
+Tool-Server (Port 3002/3001)
+    ↓
+MusicXML-Generierung
+    ↓
+MIDI-Export
+    ↓
+Dexed FM-Synth (Port 8081)
+    ↓
+Audio-Generierung
+```
+
+#### **3. Audio-Verarbeitung:**
+```
+Dexed Audio Output
+    ↓
+WildFX Integration (Port 9010)
+    ↓
+Professionelle Audio-Effekte
+    ↓
+Final Audio Output
+```
+
+### 🔧 **Was noch entwickelt wird:**
+
+#### **1. Headless Sampler (Ihr Kumpel):**
+- 🔄 **Drum-Beat-Generierung** - In Entwicklung
+- 🔄 **Sample-basierte Synthese** - Geplant
+- 🔄 **MIDI-Konsument** - Wird an Tool-Server angebunden
+
+#### **2. Erweiterte MIDI-Konsumenten:**
+- 🔄 **Weitere Synthesizer** - Erweiterbare Architektur
+- 🔄 **Drum-Machines** - Verschiedene Beat-Generatoren
+- 🔄 **Effekt-Prozessoren** - Audio-Effekt-Ketten
+
+### 🚀 **Nächste Schritte:**
+
+#### **Priorität 1: Headless Sampler Integration**
+1. **MIDI-Konsument** für Drum-Beats
+2. **Sample-basierte Synthese** integrieren
+3. **Tool-Server** erweitern für Sampler
+
+#### **Priorität 2: Erweiterte Features**
+1. **Weitere MIDI-Konsumenten** anbinden
+2. **Audio-Effekt-Ketten** erweitern
+3. **Multi-Track-Recording** implementieren
+
+#### **Priorität 3: Benutzer-Experience**
+1. **OpenWebUI** erweitern
+2. **Real-time Audio-Preview** hinzufügen
+3. **Patch-Bibliothek** implementieren
+
+### 📊 **System-Status:**
+
+#### **✅ Funktioniert:**
+- ✅ **OpenWebUI** - Live auf humanmusic.digitalalchemisten.de
+- ✅ **Tool-Server** - Kommunikation mit OpenWebUI
+- ✅ **MusicXML-Server** - MusicXML-Generierung und -Parsing
+- ✅ **MIDI-Server** - MIDI-Export und -Verarbeitung
+- ✅ **Dexed FM-Synth** - Echte FM-Synthese
+- ✅ **WildFX Integration** - Professionelle Audio-Effekte
+- ✅ **Docker-Infrastruktur** - Alle Services laufen stabil
+
+#### **🔄 In Entwicklung:**
+- 🔄 **Headless Sampler** - Drum-Beat-Generierung
+- 🔄 **Erweiterte MIDI-Konsumenten** - Weitere Synthesizer
+- 🔄 **Multi-Track-Recording** - Mehrere Spuren
+
+#### **📋 Geplant:**
+- 📋 **Real-time Audio-Preview** - Live-Audio-Vorschau
+- 📋 **Patch-Bibliothek** - Speichern und Laden von Patches
+- 📋 **Erweiterte Audio-Effekte** - Mehr Effekt-Optionen
 
 ---
 
-**🎹 API-native FM-Synthese mit echten Instrumenten - Das ist die Zukunft der Musikproduktion!**
+**🎯 FAZIT: Das System ist bereits viel weiter entwickelt als ursprünglich beschrieben! OpenWebUI läuft live, die Tool-Server-Architektur funktioniert, und die Pipeline von LLM → MusicXML → MIDI → Dexed/WildFX ist bereits implementiert. Der Headless Sampler ist die nächste wichtige Erweiterung!**
